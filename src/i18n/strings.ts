@@ -35,6 +35,8 @@ interface Dict {
     sendTitle: string;
     asImage: string;
     asVideo: string;
+    videoReady: string;
+    saveFile: string;
   };
 }
 
@@ -80,6 +82,8 @@ const ru: Dict = {
     sendTitle: 'Как отправить?',
     asImage: 'Картинкой',
     asVideo: 'Анимацией (видео)',
+    videoReady: 'Видео готово!',
+    saveFile: 'Сохранить на устройство',
   },
 };
 
@@ -125,6 +129,8 @@ const he: Dict = {
     sendTitle: 'איך לשלוח?',
     asImage: 'כתמונה',
     asVideo: 'כאנימציה (וידאו)',
+    videoReady: 'הסרטון מוכן!',
+    saveFile: 'שמירה במכשיר',
   },
 };
 
@@ -170,6 +176,8 @@ const en: Dict = {
     sendTitle: 'How to send?',
     asImage: 'As an image',
     asVideo: 'As animation (video)',
+    videoReady: 'Video is ready!',
+    saveFile: 'Save to device',
   },
 };
 

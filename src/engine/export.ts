@@ -34,7 +34,10 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
   const rec = new MediaRecorder(stream, { mimeType: mimeType || undefined, videoBitsPerSecond: 6_000_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-  const done = new Promise<Blob>((res) => (rec.onstop = () => res(new Blob(chunks, { type: rec.mimeType || 'video/webm' }))));
+  // Тип без параметров кодека («video/mp4», не «video/mp4;codecs=avc1») — иначе
+  // системное «Поделиться» и мессенджеры на части телефонов отклоняют файл.
+  const baseType = (rec.mimeType || mimeType || 'video/webm').split(';')[0];
+  const done = new Promise<Blob>((res) => (rec.onstop = () => res(new Blob(chunks, { type: baseType }))));
 
   rec.start(250);
   const start = performance.now();
@@ -68,7 +71,7 @@ export function download(blob: Blob, name: string) {
  * и в современных десктоп-браузерах; если его нет — скачивание файла.
  */
 export async function shareOrDownload(blob: Blob, name: string, title: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  const file = new File([blob], name, { type: blob.type });
+  const file = new File([blob], name, { type: blob.type.split(';')[0] });
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title });

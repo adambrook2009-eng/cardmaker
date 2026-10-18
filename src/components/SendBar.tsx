@@ -10,6 +10,8 @@ export function SendBar({ card }: { card: CardState }) {
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState('');
   const [sheet, setSheet] = useState(false);
+  /** Готовое видео ждёт второго нажатия: share() разрешён только сразу после жеста пользователя. */
+  const [readyVideo, setReadyVideo] = useState<Blob | null>(null);
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -29,11 +31,19 @@ export function SendBar({ card }: { card: CardState }) {
     }
   };
 
-  const send = async (kind: 'image' | 'video') => {
-    setSheet(false);
-    const blob = kind === 'video' ? await makeVideo() : await exportPNG(card);
+  const shareBlob = async (blob: Blob) => {
     const res = await shareOrDownload(blob, `card.${extFor(blob)}`, t.appName);
     if (res !== 'cancelled') flash(res === 'shared' ? t.ui.shared : t.ui.downloaded);
+  };
+
+  const send = async (kind: 'image' | 'video') => {
+    setSheet(false);
+    if (kind === 'image') return shareBlob(await exportPNG(card));
+    // Запись длится секунды — к её концу «разрешение от нажатия» истекает,
+    // поэтому показываем кнопку «Отправить» для нового нажатия.
+    const blob = await makeVideo();
+    if (blob.type.startsWith('video/')) setReadyVideo(blob);
+    else shareBlob(blob);
   };
 
   const save = async (kind: 'image' | 'video') => {
@@ -68,6 +78,34 @@ export function SendBar({ card }: { card: CardState }) {
             </button>
             <button className="big-action secondary" onClick={() => send('image')}>
               🖼️ {t.ui.asImage}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {readyVideo && (
+        <div className="sheet-backdrop" onClick={() => setReadyVideo(null)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <h3>✅ {t.ui.videoReady}</h3>
+            <button
+              className="big-action"
+              onClick={() => {
+                const blob = readyVideo;
+                setReadyVideo(null);
+                shareBlob(blob);
+              }}
+            >
+              📤 {t.ui.share}
+            </button>
+            <button
+              className="big-action secondary"
+              onClick={() => {
+                download(readyVideo, `card.${extFor(readyVideo)}`);
+                setReadyVideo(null);
+                flash(t.ui.downloaded);
+              }}
+            >
+              💾 {t.ui.saveFile}
             </button>
           </div>
         </div>
