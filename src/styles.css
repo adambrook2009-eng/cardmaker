@@ -85,6 +85,16 @@ h1, h3 { margin: 0; }
 }
 @media (min-width: 900px) { .card-canvas { max-width: min(100%, 78dvh); } }
 
+.canvas-wrap { position: relative; width: 100%; max-width: min(100%, 62dvh); }
+.canvas-wrap .card-canvas { max-width: 100%; display: block; }
+@media (min-width: 900px) { .canvas-wrap { max-width: min(100%, 78dvh); } }
+.music-fab {
+  position: absolute; z-index: 2; inset-block-start: 14px; inset-inline-end: 14px;
+  width: 52px; height: 52px; border-radius: 50%; font-size: 24px;
+  background: rgba(20, 10, 40, 0.55); color: #fff; backdrop-filter: blur(6px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+.hint.error { color: #dc2626; }
 .send-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .send-bar button { padding: 10px 16px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-weight: 700; }
 .send-bar button:disabled { opacity: 0.4; cursor: default; }

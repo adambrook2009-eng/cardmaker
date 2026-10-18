@@ -1,5 +1,6 @@
 import type { CardState } from '../types';
 import { createAnimation } from './animations';
+import { getAudioContext, startMusic } from './audio';
 import { renderScene } from './renderer';
 import { SIZE } from './utils';
 
@@ -18,9 +19,11 @@ export async function exportPNG(state: CardState): Promise<Blob> {
 
 export const canRecordVideo = () => typeof MediaRecorder !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype;
 
-function pickMime(): string {
+function pickMime(withAudio: boolean): string {
   // MP4 — Safari/iOS и новый Chrome; WebM — остальные
-  const list = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  const list = withAudio
+    ? ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+    : ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
   return list.find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
 }
 
@@ -29,8 +32,18 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
   const c = offscreen();
   const ctx = c.getContext('2d')!;
   const anim = createAnimation(state.animation);
-  const stream = c.captureStream(30);
-  const mimeType = pickMime();
+  const tracks: MediaStreamTrack[] = c.captureStream(30).getVideoTracks();
+
+  // Музыка: синтезатор/файл играет в поток, который записывается вместе с картинкой
+  let stopMusic = () => {};
+  if (state.music.kind !== 'none') {
+    const ac = getAudioContext();
+    const dest = ac.createMediaStreamDestination();
+    stopMusic = startMusic(state.music, ac, dest, { duration: seconds });
+    tracks.push(...dest.stream.getAudioTracks());
+  }
+  const stream = new MediaStream(tracks);
+  const mimeType = pickMime(tracks.length > 1);
   const rec = new MediaRecorder(stream, { mimeType: mimeType || undefined, videoBitsPerSecond: 6_000_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
@@ -52,6 +65,7 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
     tick();
   });
   rec.stop();
+  stopMusic();
   return done;
 }
 

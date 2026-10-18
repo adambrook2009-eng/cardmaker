@@ -9,12 +9,15 @@ import { StickerPanel } from './panels/StickerPanel';
 import { FramePanel } from './panels/FramePanel';
 import { TextPanel } from './panels/TextPanel';
 import { AnimationPanel } from './panels/AnimationPanel';
+import { MusicPanel, useMusicPlaying } from './panels/MusicPanel';
+import { musicPlayer } from '../engine/audio';
 
 const TABS = [
   { id: 'background', icon: '🖼️', Panel: BackgroundPanel },
   { id: 'text', icon: '💬', Panel: TextPanel },
   { id: 'stickers', icon: '🌸', Panel: StickerPanel },
   { id: 'animation', icon: '✨', Panel: AnimationPanel },
+  { id: 'music', icon: '🎵', Panel: MusicPanel },
   { id: 'frames', icon: '🔲', Panel: FramePanel },
   { id: 'filters', icon: '🎨', Panel: FilterPanel },
 ] as const;
@@ -32,11 +35,25 @@ export function Editor({ api }: { api: CardApi }) {
     if (selection?.type === 'sticker') setTab('stickers');
   }, [selection]);
 
+  // Ушли из редактора — музыка замолкает
+  useEffect(() => () => musicPlayer.stop(), []);
+
+  const playing = useMusicPlaying();
   const Panel = TABS.find((x) => x.id === tab)!.Panel;
 
   return (
     <div className="editor">
       <div className="preview">
+        <div className="canvas-wrap">
+        {card.music.kind !== 'none' && (
+          <button
+            className="music-fab"
+            aria-label={playing ? t.ui.musicStop : t.ui.musicPlay}
+            onClick={() => (playing ? musicPlayer.stop() : musicPlayer.play(card.music))}
+          >
+            {playing ? '⏸' : '🎵'}
+          </button>
+        )}
         <CardCanvas
           card={card}
           selection={selection}
@@ -45,6 +62,7 @@ export function Editor({ api }: { api: CardApi }) {
           onResizeSticker={(id, size) => api.updateSticker(id, { size })}
           onMoveText={(x, y) => api.patchText({ x, y })}
         />
+        </div>
         <SendBar card={card} />
       </div>
 

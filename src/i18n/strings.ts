@@ -1,11 +1,13 @@
 import type { AnimId, CategoryId, FilterId, FrameId, Lang, TextAnimId } from '../types';
+import type { TrackId } from '../data/music';
 
 interface Dict {
   appName: string;
   tagline: string;
   chooseCategory: string;
   categories: Record<CategoryId, { name: string; hint: string }>;
-  tabs: { background: string; filters: string; stickers: string; frames: string; text: string; animation: string };
+  tabs: { background: string; filters: string; stickers: string; frames: string; text: string; animation: string; music: string };
+  tracks: Record<TrackId, string>;
   filters: Record<FilterId, string>;
   frames: Record<FrameId, string>;
   anims: Record<AnimId, string>;
@@ -37,6 +39,12 @@ interface Dict {
     asVideo: string;
     videoReady: string;
     saveFile: string;
+    musicPlay: string;
+    musicStop: string;
+    musicNone: string;
+    musicOwn: string;
+    musicHint: string;
+    musicError: string;
   };
 }
 
@@ -52,7 +60,8 @@ const ru: Dict = {
     kind: { name: 'Доброе', hint: 'Котики, природа' },
     love: { name: 'Признание', hint: 'Любовь, благодарность' },
   },
-  tabs: { background: 'Фон', filters: 'Фильтры', stickers: 'Стикеры', frames: 'Рамки', text: 'Текст', animation: 'Анимация' },
+  tabs: { background: 'Фон', filters: 'Фильтры', stickers: 'Стикеры', frames: 'Рамки', text: 'Текст', animation: 'Анимация', music: 'Музыка' },
+  tracks: { birthday: 'С днём рождения', jingle: 'Jingle Bells', twinkle: 'Звёздочка', romantic: 'Романтика', calm: 'Спокойная', funny: 'Весёлая', party: 'Вечеринка' },
   filters: { none: 'Без фильтра', retro: 'Ретро', bright: 'Яркий', bw: 'Ч/Б', soft: 'Мягкий фокус' },
   frames: { none: 'Без рамки', classic: 'Классика', gold: 'Золото', polaroid: 'Полароид', hearts: 'Сердечки', flowers: 'Цветы', sparkles: 'Блёстки', party: 'Праздник' },
   anims: { none: 'Без анимации', snow: 'Снежинки', petals: 'Лепестки', lights: 'Огоньки', sparkles: 'Мерцание', hearts: 'Сердечки', confetti: 'Конфетти', bokeh: 'Мягкий свет' },
@@ -84,6 +93,12 @@ const ru: Dict = {
     asVideo: 'Анимацией (видео)',
     videoReady: 'Видео готово!',
     saveFile: 'Сохранить на устройство',
+    musicPlay: 'Слушать',
+    musicStop: 'Пауза',
+    musicNone: 'Без музыки',
+    musicOwn: 'Своя музыка',
+    musicHint: 'Музыка звучит в видео-открытке. На iPhone выключите беззвучный режим, чтобы слышать её здесь.',
+    musicError: 'Не удалось открыть этот файл. Попробуйте MP3 или M4A.',
   },
 };
 
@@ -99,7 +114,8 @@ const he: Dict = {
     kind: { name: 'חמוד', hint: 'חתולים, טבע' },
     love: { name: 'הוקרה', hint: 'אהבה, תודה' },
   },
-  tabs: { background: 'רקע', filters: 'פילטרים', stickers: 'מדבקות', frames: 'מסגרות', text: 'טקסט', animation: 'אנימציה' },
+  tabs: { background: 'רקע', filters: 'פילטרים', stickers: 'מדבקות', frames: 'מסגרות', text: 'טקסט', animation: 'אנימציה', music: 'מוזיקה' },
+  tracks: { birthday: 'יום הולדת שמח', jingle: 'ג׳ינגל בלס', twinkle: 'כוכב קטן', romantic: 'רומנטי', calm: 'רגוע', funny: 'שמח ומצחיק', party: 'מסיבה' },
   filters: { none: 'ללא', retro: 'רטרו', bright: 'בהיר', bw: 'שחור־לבן', soft: 'פוקוס רך' },
   frames: { none: 'ללא', classic: 'קלאסי', gold: 'זהב', polaroid: 'פולרואיד', hearts: 'לבבות', flowers: 'פרחים', sparkles: 'נצנצים', party: 'חגיגה' },
   anims: { none: 'ללא', snow: 'פתיתי שלג', petals: 'עלי כותרת', lights: 'אורות', sparkles: 'נצנוץ', hearts: 'לבבות', confetti: 'קונפטי', bokeh: 'אור רך' },
@@ -131,6 +147,12 @@ const he: Dict = {
     asVideo: 'כאנימציה (וידאו)',
     videoReady: 'הסרטון מוכן!',
     saveFile: 'שמירה במכשיר',
+    musicPlay: 'האזנה',
+    musicStop: 'השהיה',
+    musicNone: 'ללא מוזיקה',
+    musicOwn: 'מוזיקה שלי',
+    musicHint: 'המוזיקה נשמעת בגלויית הווידאו. באייפון כבו את מצב השקט כדי לשמוע אותה כאן.',
+    musicError: 'לא ניתן לפתוח את הקובץ. נסו MP3 או M4A.',
   },
 };
 
@@ -146,7 +168,8 @@ const en: Dict = {
     kind: { name: 'Sweet', hint: 'Kittens, nature' },
     love: { name: 'Love & thanks', hint: 'Love, gratitude' },
   },
-  tabs: { background: 'Background', filters: 'Filters', stickers: 'Stickers', frames: 'Frames', text: 'Text', animation: 'Animation' },
+  tabs: { background: 'Background', filters: 'Filters', stickers: 'Stickers', frames: 'Frames', text: 'Text', animation: 'Animation', music: 'Music' },
+  tracks: { birthday: 'Happy Birthday', jingle: 'Jingle Bells', twinkle: 'Twinkle Star', romantic: 'Romantic', calm: 'Calm', funny: 'Funny', party: 'Party' },
   filters: { none: 'Original', retro: 'Retro', bright: 'Vivid', bw: 'B&W', soft: 'Soft focus' },
   frames: { none: 'No frame', classic: 'Classic', gold: 'Gold', polaroid: 'Polaroid', hearts: 'Hearts', flowers: 'Flowers', sparkles: 'Sparkles', party: 'Party' },
   anims: { none: 'None', snow: 'Snowflakes', petals: 'Petals', lights: 'Fairy lights', sparkles: 'Twinkle', hearts: 'Hearts', confetti: 'Confetti', bokeh: 'Soft light' },
@@ -178,6 +201,12 @@ const en: Dict = {
     asVideo: 'As animation (video)',
     videoReady: 'Video is ready!',
     saveFile: 'Save to device',
+    musicPlay: 'Listen',
+    musicStop: 'Pause',
+    musicNone: 'No music',
+    musicOwn: 'My music',
+    musicHint: 'Music plays in the video card. On iPhone, turn off silent mode to hear it here.',
+    musicError: "Couldn't open this file. Try MP3 or M4A.",
   },
 };
 

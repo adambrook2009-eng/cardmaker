@@ -12,6 +12,7 @@ export function createCard(category: CategoryId, lang: Lang): CardState {
     filter: 'none',
     frame: d.frame,
     animation: d.animation,
+    music: { kind: 'builtin', id: d.music },
     stickers: [],
     text: {
       value: PHRASES[category][lang][0],

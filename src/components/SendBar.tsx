@@ -3,7 +3,9 @@ import type { CardState } from '../types';
 import { useI18n } from '../i18n/I18nProvider';
 import { canRecordVideo, copyImage, download, exportPNG, exportVideo, extFor, shareOrDownload } from '../engine/export';
 
-const hasMotion = (c: CardState) => c.animation !== 'none' || c.text.anim !== 'none';
+const hasMotion = (c: CardState) => c.animation !== 'none' || c.text.anim !== 'none' || c.music.kind !== 'none';
+/** С музыкой видео длиннее — чтобы мелодия успела прозвучать. */
+const videoSeconds = (c: CardState) => (c.music.kind !== 'none' ? 10 : 5);
 
 export function SendBar({ card }: { card: CardState }) {
   const { t } = useI18n();
@@ -25,7 +27,7 @@ export function SendBar({ card }: { card: CardState }) {
     }
     setProgress(0);
     try {
-      return await exportVideo(card, 5, setProgress);
+      return await exportVideo(card, videoSeconds(card), setProgress);
     } finally {
       setProgress(null);
     }

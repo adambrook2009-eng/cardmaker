@@ -1,3 +1,5 @@
+import type { TrackId } from './data/music';
+
 export type Lang = 'ru' | 'he' | 'en';
 
 export type CategoryId = 'congrats' | 'wishes' | 'sympathy' | 'funny' | 'kind' | 'love';
@@ -11,6 +13,11 @@ export type Background =
   | { kind: 'builtin'; id: string }
   /** Фото пользователя, заранее уменьшенное до разумного размера (быстро на телефонах). */
   | { kind: 'photo'; img: HTMLCanvasElement };
+
+export type MusicChoice =
+  | { kind: 'none' }
+  | { kind: 'builtin'; id: TrackId }
+  | { kind: 'file'; name: string; buffer: AudioBuffer };
 
 export interface Sticker {
   id: string;
@@ -36,6 +43,7 @@ export interface CardState {
   filter: FilterId;
   frame: FrameId;
   animation: AnimId;
+  music: MusicChoice;
   stickers: Sticker[];
   text: CardText;
 }
