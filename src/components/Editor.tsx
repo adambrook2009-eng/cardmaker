@@ -1,0 +1,64 @@
+import { useEffect, useState } from 'react';
+import type { CardApi } from '../state/useCard';
+import { useI18n } from '../i18n/I18nProvider';
+import { CardCanvas } from './CardCanvas';
+import { SendBar } from './SendBar';
+import { BackgroundPanel } from './panels/BackgroundPanel';
+import { FilterPanel } from './panels/FilterPanel';
+import { StickerPanel } from './panels/StickerPanel';
+import { FramePanel } from './panels/FramePanel';
+import { TextPanel } from './panels/TextPanel';
+import { AnimationPanel } from './panels/AnimationPanel';
+
+const TABS = [
+  { id: 'background', icon: '🖼️', Panel: BackgroundPanel },
+  { id: 'text', icon: '💬', Panel: TextPanel },
+  { id: 'stickers', icon: '🌸', Panel: StickerPanel },
+  { id: 'animation', icon: '✨', Panel: AnimationPanel },
+  { id: 'frames', icon: '🔲', Panel: FramePanel },
+  { id: 'filters', icon: '🎨', Panel: FilterPanel },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+export function Editor({ api }: { api: CardApi }) {
+  const { t } = useI18n();
+  const [tab, setTab] = useState<TabId>('text');
+  const { card, selection } = api;
+
+  // Нажали на текст/стикер на открытке — сразу открываем нужные инструменты
+  useEffect(() => {
+    if (selection?.type === 'text') setTab('text');
+    if (selection?.type === 'sticker') setTab('stickers');
+  }, [selection]);
+
+  const Panel = TABS.find((x) => x.id === tab)!.Panel;
+
+  return (
+    <div className="editor">
+      <div className="preview">
+        <CardCanvas
+          card={card}
+          selection={selection}
+          onSelect={api.setSelection}
+          onMoveSticker={(id, x, y) => api.updateSticker(id, { x, y })}
+          onResizeSticker={(id, size) => api.updateSticker(id, { size })}
+          onMoveText={(x, y) => api.patchText({ x, y })}
+        />
+        <SendBar card={card} />
+      </div>
+
+      <div className="tools">
+        <nav className="tabs">
+          {TABS.map((x) => (
+            <button key={x.id} className={tab === x.id ? 'active' : ''} onClick={() => setTab(x.id)}>
+              <span className="tab-icon">{x.icon}</span>
+              <span className="tab-label">{t.tabs[x.id]}</span>
+            </button>
+          ))}
+        </nav>
+        <Panel api={api} />
+      </div>
+    </div>
+  );
+}
