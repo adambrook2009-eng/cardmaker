@@ -228,7 +228,7 @@ export function startMusic(choice: MusicChoice, ac: AudioContext, dest: AudioNod
     src.buffer = choice.buffer;
     src.loop = true;
     src.connect(master);
-    src.start(start);
+    src.start(start, (choice.offset ?? 0) % choice.buffer.duration);
   } else {
     // Классический «планировщик с упреждением»: ноты ставятся в очередь на 0.25 c вперёд
     const track = getTrack(choice.id);

@@ -25,7 +25,17 @@ export type Background =
 export type MusicChoice =
   | { kind: 'none' }
   | { kind: 'builtin'; id: TrackId }
-  | { kind: 'file'; name: string; buffer: AudioBuffer };
+  | {
+      kind: 'file';
+      name: string;
+      buffer: AudioBuffer;
+      /** С какой секунды играть (например, с припева). */
+      offset?: number;
+      /** Песня из Jamendo: id, подпись «Название — Исполнитель» и лицензия CC. */
+      songId?: string;
+      credit?: string;
+      license?: string;
+    };
 
 export interface Sticker {
   id: string;

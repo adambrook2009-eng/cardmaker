@@ -6,7 +6,7 @@ import { canRecordVideo, copyImage, download, exportPNG, exportVideo, extFor, sh
 const hasMotion = (c: CardState) =>
   c.animation !== 'none' || c.text.anim !== 'none' || c.music.kind !== 'none' || c.fx !== 'none' || c.camera !== 'none' || c.intro !== 'none';
 /** С музыкой видео длиннее — чтобы мелодия успела прозвучать. */
-const videoSeconds = (c: CardState) => (c.music.kind !== 'none' ? 10 : 5);
+const videoSeconds = (c: CardState) => (c.music.kind === 'file' ? 15 : c.music.kind !== 'none' ? 10 : 5);
 
 export function SendBar({ card }: { card: CardState }) {
   const { t } = useI18n();

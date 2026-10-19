@@ -23,6 +23,8 @@ export interface FrameOpts {
   /** Громкость музыки 0…1 — эффекты двигаются в такт. */
   level?: number;
   dt?: number;
+  /** Подпись песни внизу кадра (в картинке без звука она не нужна). */
+  credit?: boolean;
 }
 
 const supportsFilter = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype;
@@ -350,8 +352,31 @@ export function renderScene(ctx: CanvasRenderingContext2D, state: CardState, t: 
   if (box && selection?.type === 'text') outline(ctx, box.x - 20, box.y - 14, box.w + 40, box.h + 28);
 
   if (layers.fx?.layer === 'front') layers.fx.draw(ctx, t, dt, level);
+  if (opts.credit !== false && state.music.kind === 'file' && state.music.credit) drawCredit(ctx, state.music.credit);
   drawIntro(ctx, state.intro, t);
   return box;
+}
+
+/** Подпись песни — требование лицензии Creative Commons (указать автора). */
+function drawCredit(ctx: CanvasRenderingContext2D, text: string) {
+  ctx.save();
+  ctx.font = `500 26px "Rubik", Arial, sans-serif`;
+  const label = `♪ ${text}`;
+  const w = Math.min(ctx.measureText(label).width, SIZE - 120) + 32;
+  const x = SIZE / 2 - w / 2;
+  const y = SIZE - 74;
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = 'rgba(10,5,25,0.55)';
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, 44, 22);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.direction = isRTL(text) ? 'rtl' : 'ltr';
+  ctx.fillText(label, SIZE / 2, y + 23, SIZE - 120);
+  ctx.restore();
 }
 
 function outline(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {

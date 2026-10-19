@@ -17,9 +17,9 @@ export async function exportPNG(state: CardState): Promise<Blob> {
   const T = 2.4;
   if (layers.fx) {
     const step = 1 / 15;
-    for (let t = 0; t < T; t += step) pipe.render(state, t, layers, { dt: step }, false);
+    for (let t = 0; t < T; t += step) pipe.render(state, t, layers, { dt: step, credit: false }, false);
   }
-  pipe.render(state, T, layers);
+  pipe.render(state, T, layers, { credit: false });
   return new Promise((res, rej) => pipe.out.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png'));
 }
 

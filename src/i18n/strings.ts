@@ -53,6 +53,14 @@ interface Dict {
     musicOwn: string;
     musicHint: string;
     musicError: string;
+    songsTitle: string;
+    songsFallback: string;
+    songsError: string;
+    songLoading: string;
+    songsCredit: string;
+    songStart: string;
+    melodiesTitle: string;
+    musicOwnPick: string;
     presets: string;
     fxTitle: string;
     lookTitle: string;
@@ -129,6 +137,14 @@ const ru: Dict = {
     musicOwn: 'Своя музыка',
     musicHint: 'Музыка звучит в видео-открытке. На iPhone выключите беззвучный режим, чтобы слышать её здесь.',
     musicError: 'Не удалось открыть этот файл. Попробуйте MP3 или M4A.',
+    songsTitle: 'Песни на русском',
+    songsFallback: 'Песен на этом языке под этот повод пока нет — вот английские.',
+    songsError: 'Не удалось загрузить песни. Проверьте интернет.',
+    songLoading: 'Подбираем песни…',
+    songsCredit: 'Свободные песни под лицензией Creative Commons от',
+    songStart: 'Начать с',
+    melodiesTitle: 'Мелодии',
+    musicOwnPick: 'Выбрать песню с устройства',
     presets: 'Готовые стили — в один клик',
     fxTitle: 'Спецэффект',
     lookTitle: 'Кино-обработка',
@@ -205,6 +221,14 @@ const he: Dict = {
     musicOwn: 'מוזיקה שלי',
     musicHint: 'המוזיקה נשמעת בגלויית הווידאו. באייפון כבו את מצב השקט כדי לשמוע אותה כאן.',
     musicError: 'לא ניתן לפתוח את הקובץ. נסו MP3 או M4A.',
+    songsTitle: 'שירים בעברית',
+    songsFallback: 'עדיין אין שירים בשפה הזאת לאירוע הזה — הנה שירים באנגלית.',
+    songsError: 'לא ניתן לטעון שירים. בדקו את החיבור לאינטרנט.',
+    songLoading: 'מחפשים שירים…',
+    songsCredit: 'שירים חופשיים ברישיון Creative Commons מאת',
+    songStart: 'להתחיל מ־',
+    melodiesTitle: 'מנגינות',
+    musicOwnPick: 'בחירת שיר מהמכשיר',
     presets: 'סגנונות מוכנים — בלחיצה אחת',
     fxTitle: 'אפקט מיוחד',
     lookTitle: 'עיבוד קולנועי',
@@ -281,6 +305,14 @@ const en: Dict = {
     musicOwn: 'My music',
     musicHint: 'Music plays in the video card. On iPhone, turn off silent mode to hear it here.',
     musicError: "Couldn't open this file. Try MP3 or M4A.",
+    songsTitle: 'Songs in English',
+    songsFallback: 'No songs in this language for this occasion yet — here are English ones.',
+    songsError: "Couldn't load songs. Check your internet connection.",
+    songLoading: 'Finding songs…',
+    songsCredit: 'Free Creative Commons songs from',
+    songStart: 'Start at',
+    melodiesTitle: 'Melodies',
+    musicOwnPick: 'Pick a song from your device',
     presets: 'Ready styles — one tap',
     fxTitle: 'Special effect',
     lookTitle: 'Cinematic look',

@@ -26,6 +26,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # публичный ключ Jamendo: Settings → Secrets and variables → Actions → Variables
+          VITE_JAMENDO_CLIENT_ID: ${{ vars.JAMENDO_CLIENT_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

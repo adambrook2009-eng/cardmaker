@@ -1,23 +1,55 @@
-import { useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { CardApi } from '../../state/useCard';
 import type { MusicChoice } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { TRACKS } from '../../data/music';
-import { decodeAudioFile, musicPlayer } from '../../engine/audio';
+import { decodeAudioFile, getAudioContext, musicPlayer } from '../../engine/audio';
+import { defaultOffset, findSongs, fmtTime, licenseLabel, loadSong, songsEnabled, type Song, type SongList } from '../../engine/jamendo';
 
 export const useMusicPlaying = () => useSyncExternalStore(musicPlayer.subscribe, musicPlayer.isPlaying);
 
 export function MusicPanel({ api }: { api: CardApi }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const input = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState(false);
+  const [fileError, setFileError] = useState(false);
+  const [list, setList] = useState<SongList | null>(null);
+  const [listError, setListError] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const playing = useMusicPlaying();
   const music = api.card.music;
+  const category = api.card.category;
+
+  // Песни подбираются заново при смене языка интерфейса
+  useEffect(() => {
+    if (!songsEnabled()) return;
+    let alive = true;
+    setList(null);
+    setListError(false);
+    findSongs(lang, category)
+      .then((l) => alive && setList(l))
+      .catch(() => alive && setListError(true));
+    return () => {
+      alive = false;
+    };
+  }, [lang, category]);
 
   // Выбор = сразу послушать (нажатие пользователя разрешает браузеру включить звук)
   const choose = (m: MusicChoice) => {
     api.patch({ music: m });
     musicPlayer.play(m);
+  };
+
+  const pickSong = async (s: Song) => {
+    getAudioContext(); // «будим» звук прямо в обработчике нажатия
+    setLoadingId(s.id);
+    try {
+      const buffer = await loadSong(s.id);
+      choose({ kind: 'file', name: s.name, buffer, offset: defaultOffset(buffer.duration), songId: s.id, credit: `${s.name} — ${s.artist}`, license: s.license });
+    } catch {
+      setListError(true);
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const isActive = (m: MusicChoice) =>
@@ -31,6 +63,70 @@ export function MusicPanel({ api }: { api: CardApi }) {
         </button>
       )}
 
+      {music.kind === 'file' && (
+        <div className="song-trim">
+          <div className="song-now">
+            🎵 <b>{music.credit ?? music.name}</b>
+            {music.license && (
+              <a href={music.license} target="_blank" rel="noreferrer" className="license">
+                {licenseLabel(music.license)}
+              </a>
+            )}
+          </div>
+          <label>
+            {t.ui.songStart}: {fmtTime(music.offset ?? 0)}
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, Math.floor(music.buffer.duration - 10))}
+              value={music.offset ?? 0}
+              onChange={(e) => api.patch({ music: { ...music, offset: +e.target.value } })}
+              // слушаем новый фрагмент, когда палец/мышь отпущены
+              onPointerUp={() => musicPlayer.play(api.card.music)}
+              onKeyUp={() => musicPlayer.play(api.card.music)}
+            />
+          </label>
+        </div>
+      )}
+
+      {/* Любая настоящая песня с телефона/компьютера — без регистрации и на любом языке */}
+      <h3>🎤 {t.ui.musicOwn}</h3>
+      <button className="big-action secondary" onClick={() => input.current?.click()}>
+        📁 {t.ui.musicOwnPick}
+      </button>
+      {fileError && <p className="hint error">{t.ui.musicError}</p>}
+
+      {songsEnabled() && (
+        <>
+          <h3>🎤 {t.ui.songsTitle}</h3>
+          {list?.fallback && <p className="hint">{t.ui.songsFallback}</p>}
+          {listError && <p className="hint error">{t.ui.songsError}</p>}
+          {!list && !listError && <p className="hint">{t.ui.songLoading}</p>}
+          <div className="song-list">
+            {list?.songs.map((s) => {
+              const active = music.kind === 'file' && music.songId === s.id;
+              return (
+                <button key={s.id} className={`song ${active ? 'active' : ''}`} onClick={() => pickSong(s)} disabled={loadingId !== null}>
+                  {s.image ? <img src={s.image} alt="" loading="lazy" /> : <span className="song-cover">🎵</span>}
+                  <span className="song-meta">
+                    <span className="song-name">{s.name}</span>
+                    <span className="song-artist">{s.artist}</span>
+                  </span>
+                  <span className="song-dur">{loadingId === s.id ? '⏳' : active && playing ? '🔊' : fmtTime(s.duration)}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="hint">
+            {t.ui.songsCredit}{' '}
+            <a href="https://www.jamendo.com" target="_blank" rel="noreferrer">
+              Jamendo
+            </a>
+          </p>
+        </>
+      )}
+
+      <h3>🎹 {t.ui.melodiesTitle}</h3>
       <div className="tile-grid">
         <button className={`tile ${music.kind === 'none' ? 'active' : ''}`} onClick={() => choose({ kind: 'none' })}>
           <span className="tile-icon">🔇</span>
@@ -45,10 +141,6 @@ export function MusicPanel({ api }: { api: CardApi }) {
             </button>
           );
         })}
-        <button className={`tile ${music.kind === 'file' ? 'active' : ''}`} onClick={() => input.current?.click()}>
-          <span className="tile-icon">📁</span>
-          <span>{music.kind === 'file' ? music.name : t.ui.musicOwn}</span>
-        </button>
       </div>
 
       <input
@@ -61,14 +153,14 @@ export function MusicPanel({ api }: { api: CardApi }) {
           e.target.value = '';
           if (!f) return;
           try {
-            setError(false);
-            choose({ kind: 'file', name: f.name.replace(/\.[^.]+$/, ''), buffer: await decodeAudioFile(f) });
+            setFileError(false);
+            const buffer = await decodeAudioFile(f);
+            choose({ kind: 'file', name: f.name.replace(/\.[^.]+$/, ''), buffer, offset: defaultOffset(buffer.duration) });
           } catch {
-            setError(true);
+            setFileError(true);
           }
         }}
       />
-      {error && <p className="hint error">{t.ui.musicError}</p>}
       <p className="hint">{t.ui.musicHint}</p>
     </div>
   );
