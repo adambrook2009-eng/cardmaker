@@ -9,6 +9,14 @@ export type AnimId = 'none' | 'snow' | 'petals' | 'lights' | 'sparkles' | 'heart
 export type TextAnimId = 'none' | 'pulse' | 'bounce' | 'typewriter' | 'glow';
 export type FontId = 'rubik' | 'amatic' | 'caveat' | 'playfair';
 
+/* ---- Спецэффекты ---- */
+export type FxId = 'none' | 'fireworks' | 'aurora' | 'lightLeaks' | 'lensFlare' | 'goldDust' | 'magic' | 'starWarp';
+/** Кино-обработка (WebGL пост-эффекты). */
+export type LookId = 'none' | 'glow' | 'cinema' | 'dream' | 'neon' | 'vintage';
+export type CameraId = 'none' | 'zoomIn' | 'zoomOut' | 'pan' | 'float';
+export type IntroId = 'none' | 'fade' | 'flash' | 'iris' | 'curtain';
+export type TextStyleId = 'plain' | 'gold' | 'neon' | 'extrude';
+
 export type Background =
   | { kind: 'builtin'; id: string }
   /** Фото пользователя, заранее уменьшенное до разумного размера (быстро на телефонах). */
@@ -35,6 +43,7 @@ export interface CardText {
   font: FontId;
   size: number;
   anim: TextAnimId;
+  style: TextStyleId;
 }
 
 export interface CardState {
@@ -44,6 +53,10 @@ export interface CardState {
   frame: FrameId;
   animation: AnimId;
   music: MusicChoice;
+  fx: FxId;
+  look: LookId;
+  camera: CameraId;
+  intro: IntroId;
   stickers: Sticker[];
   text: CardText;
 }

@@ -1,13 +1,20 @@
-import type { AnimId, CategoryId, FilterId, FrameId, Lang, TextAnimId } from '../types';
+import type { AnimId, CameraId, CategoryId, FilterId, FrameId, FxId, IntroId, Lang, LookId, TextAnimId, TextStyleId } from '../types';
 import type { TrackId } from '../data/music';
+import type { PresetId } from '../data/fx';
 
 interface Dict {
   appName: string;
   tagline: string;
   chooseCategory: string;
   categories: Record<CategoryId, { name: string; hint: string }>;
-  tabs: { background: string; filters: string; stickers: string; frames: string; text: string; animation: string; music: string };
+  tabs: { background: string; filters: string; stickers: string; frames: string; text: string; animation: string; music: string; effects: string };
   tracks: Record<TrackId, string>;
+  fx: Record<FxId, string>;
+  looks: Record<LookId, string>;
+  cameras: Record<CameraId, string>;
+  intros: Record<IntroId, string>;
+  textStyles: Record<TextStyleId, string>;
+  presets: Record<PresetId, { name: string; hint: string }>;
   filters: Record<FilterId, string>;
   frames: Record<FrameId, string>;
   anims: Record<AnimId, string>;
@@ -38,6 +45,7 @@ interface Dict {
     asImage: string;
     asVideo: string;
     videoReady: string;
+    imageReady: string;
     saveFile: string;
     musicPlay: string;
     musicStop: string;
@@ -45,6 +53,13 @@ interface Dict {
     musicOwn: string;
     musicHint: string;
     musicError: string;
+    presets: string;
+    fxTitle: string;
+    lookTitle: string;
+    cameraTitle: string;
+    introTitle: string;
+    replay: string;
+    textStyle: string;
   };
 }
 
@@ -60,7 +75,21 @@ const ru: Dict = {
     kind: { name: 'Доброе', hint: 'Котики, природа' },
     love: { name: 'Признание', hint: 'Любовь, благодарность' },
   },
-  tabs: { background: 'Фон', filters: 'Фильтры', stickers: 'Стикеры', frames: 'Рамки', text: 'Текст', animation: 'Анимация', music: 'Музыка' },
+  tabs: { background: 'Фон', filters: 'Фильтры', stickers: 'Стикеры', frames: 'Рамки', text: 'Текст', animation: 'Анимация', music: 'Музыка', effects: 'Эффекты' },
+  fx: { none: 'Без эффекта', fireworks: 'Салют', aurora: 'Северное сияние', lensFlare: 'Блик объектива', goldDust: 'Золотая пыль', magic: 'Волшебство', starWarp: 'Гиперпрыжок', lightLeaks: 'Кинозасветка' },
+  looks: { none: 'Обычная', glow: 'Свечение', cinema: 'Кино', dream: 'Мечта', neon: 'Неон', vintage: 'Старая плёнка' },
+  cameras: { none: 'Статично', zoomIn: 'Наезд', zoomOut: 'Отъезд', pan: 'Панорама', float: 'Парение' },
+  intros: { none: 'Сразу', fade: 'Из темноты', flash: 'Вспышка', iris: 'Диафрагма', curtain: 'Занавес' },
+  textStyles: { plain: 'Обычный', gold: 'Золото', neon: 'Неон', extrude: 'Объёмный 3D' },
+  presets: {
+    hollywood: { name: 'Голливуд', hint: 'Блик, кино-цвет, золото' },
+    salute: { name: 'Салют', hint: 'Фейерверк в такт музыке' },
+    magic: { name: 'Волшебство', hint: 'Палочка и сказочный свет' },
+    aurora: { name: 'Северное сияние', hint: 'Ночное небо и неон' },
+    neonParty: { name: 'Неон-пати', hint: 'Гиперпрыжок и неон' },
+    gold: { name: 'Золото', hint: 'Занавес и золотая пыль' },
+    retro: { name: 'Ретро-кино', hint: 'Старая плёнка, засветки' },
+  },
   tracks: { birthday: 'С днём рождения', jingle: 'Jingle Bells', twinkle: 'Звёздочка', romantic: 'Романтика', calm: 'Спокойная', funny: 'Весёлая', party: 'Вечеринка' },
   filters: { none: 'Без фильтра', retro: 'Ретро', bright: 'Яркий', bw: 'Ч/Б', soft: 'Мягкий фокус' },
   frames: { none: 'Без рамки', classic: 'Классика', gold: 'Золото', polaroid: 'Полароид', hearts: 'Сердечки', flowers: 'Цветы', sparkles: 'Блёстки', party: 'Праздник' },
@@ -92,6 +121,7 @@ const ru: Dict = {
     asImage: 'Картинкой',
     asVideo: 'Анимацией (видео)',
     videoReady: 'Видео готово!',
+    imageReady: 'Открытка готова!',
     saveFile: 'Сохранить на устройство',
     musicPlay: 'Слушать',
     musicStop: 'Пауза',
@@ -99,6 +129,13 @@ const ru: Dict = {
     musicOwn: 'Своя музыка',
     musicHint: 'Музыка звучит в видео-открытке. На iPhone выключите беззвучный режим, чтобы слышать её здесь.',
     musicError: 'Не удалось открыть этот файл. Попробуйте MP3 или M4A.',
+    presets: 'Готовые стили — в один клик',
+    fxTitle: 'Спецэффект',
+    lookTitle: 'Кино-обработка',
+    cameraTitle: 'Движение камеры',
+    introTitle: 'Появление',
+    replay: 'Показать с начала',
+    textStyle: 'Стиль текста',
   },
 };
 
@@ -114,7 +151,21 @@ const he: Dict = {
     kind: { name: 'חמוד', hint: 'חתולים, טבע' },
     love: { name: 'הוקרה', hint: 'אהבה, תודה' },
   },
-  tabs: { background: 'רקע', filters: 'פילטרים', stickers: 'מדבקות', frames: 'מסגרות', text: 'טקסט', animation: 'אנימציה', music: 'מוזיקה' },
+  tabs: { background: 'רקע', filters: 'פילטרים', stickers: 'מדבקות', frames: 'מסגרות', text: 'טקסט', animation: 'אנימציה', music: 'מוזיקה', effects: 'אפקטים' },
+  fx: { none: 'ללא אפקט', fireworks: 'זיקוקים', aurora: 'זוהר צפוני', lensFlare: 'הבזק עדשה', goldDust: 'אבק זהב', magic: 'קסם', starWarp: 'קפיצה להיפר', lightLeaks: 'דליפת אור' },
+  looks: { none: 'רגיל', glow: 'זוהר', cinema: 'קולנוע', dream: 'חלום', neon: 'ניאון', vintage: 'פילם ישן' },
+  cameras: { none: 'סטטי', zoomIn: 'התקרבות', zoomOut: 'התרחקות', pan: 'פנורמה', float: 'ריחוף' },
+  intros: { none: 'מיד', fade: 'מתוך החושך', flash: 'הבזק', iris: 'צמצם', curtain: 'מסך' },
+  textStyles: { plain: 'רגיל', gold: 'זהב', neon: 'ניאון', extrude: 'תלת־ממד' },
+  presets: {
+    hollywood: { name: 'הוליווד', hint: 'הבזק, צבעי קולנוע, זהב' },
+    salute: { name: 'זיקוקים', hint: 'זיקוקים בקצב המוזיקה' },
+    magic: { name: 'קסם', hint: 'שרביט ואור אגדתי' },
+    aurora: { name: 'זוהר צפוני', hint: 'שמי לילה וניאון' },
+    neonParty: { name: 'מסיבת ניאון', hint: 'קפיצה להיפר וניאון' },
+    gold: { name: 'זהב', hint: 'מסך ואבק זהב' },
+    retro: { name: 'קולנוע רטרו', hint: 'פילם ישן ודליפות אור' },
+  },
   tracks: { birthday: 'יום הולדת שמח', jingle: 'ג׳ינגל בלס', twinkle: 'כוכב קטן', romantic: 'רומנטי', calm: 'רגוע', funny: 'שמח ומצחיק', party: 'מסיבה' },
   filters: { none: 'ללא', retro: 'רטרו', bright: 'בהיר', bw: 'שחור־לבן', soft: 'פוקוס רך' },
   frames: { none: 'ללא', classic: 'קלאסי', gold: 'זהב', polaroid: 'פולרואיד', hearts: 'לבבות', flowers: 'פרחים', sparkles: 'נצנצים', party: 'חגיגה' },
@@ -146,6 +197,7 @@ const he: Dict = {
     asImage: 'כתמונה',
     asVideo: 'כאנימציה (וידאו)',
     videoReady: 'הסרטון מוכן!',
+    imageReady: 'הגלויה מוכנה!',
     saveFile: 'שמירה במכשיר',
     musicPlay: 'האזנה',
     musicStop: 'השהיה',
@@ -153,6 +205,13 @@ const he: Dict = {
     musicOwn: 'מוזיקה שלי',
     musicHint: 'המוזיקה נשמעת בגלויית הווידאו. באייפון כבו את מצב השקט כדי לשמוע אותה כאן.',
     musicError: 'לא ניתן לפתוח את הקובץ. נסו MP3 או M4A.',
+    presets: 'סגנונות מוכנים — בלחיצה אחת',
+    fxTitle: 'אפקט מיוחד',
+    lookTitle: 'עיבוד קולנועי',
+    cameraTitle: 'תנועת מצלמה',
+    introTitle: 'הופעה',
+    replay: 'הצגה מההתחלה',
+    textStyle: 'סגנון טקסט',
   },
 };
 
@@ -168,7 +227,21 @@ const en: Dict = {
     kind: { name: 'Sweet', hint: 'Kittens, nature' },
     love: { name: 'Love & thanks', hint: 'Love, gratitude' },
   },
-  tabs: { background: 'Background', filters: 'Filters', stickers: 'Stickers', frames: 'Frames', text: 'Text', animation: 'Animation', music: 'Music' },
+  tabs: { background: 'Background', filters: 'Filters', stickers: 'Stickers', frames: 'Frames', text: 'Text', animation: 'Animation', music: 'Music', effects: 'Effects' },
+  fx: { none: 'No effect', fireworks: 'Fireworks', aurora: 'Northern lights', lensFlare: 'Lens flare', goldDust: 'Gold dust', magic: 'Magic', starWarp: 'Hyperspace', lightLeaks: 'Light leaks' },
+  looks: { none: 'Normal', glow: 'Glow', cinema: 'Cinema', dream: 'Dream', neon: 'Neon', vintage: 'Old film' },
+  cameras: { none: 'Static', zoomIn: 'Zoom in', zoomOut: 'Zoom out', pan: 'Pan', float: 'Float' },
+  intros: { none: 'Instant', fade: 'Fade in', flash: 'Flash', iris: 'Iris', curtain: 'Curtain' },
+  textStyles: { plain: 'Plain', gold: 'Gold', neon: 'Neon', extrude: '3D' },
+  presets: {
+    hollywood: { name: 'Hollywood', hint: 'Flare, cinema color, gold' },
+    salute: { name: 'Fireworks', hint: 'Fireworks to the beat' },
+    magic: { name: 'Magic', hint: 'Wand and fairy light' },
+    aurora: { name: 'Northern lights', hint: 'Night sky and neon' },
+    neonParty: { name: 'Neon party', hint: 'Hyperspace and neon' },
+    gold: { name: 'Gold', hint: 'Curtain and gold dust' },
+    retro: { name: 'Retro film', hint: 'Old film, light leaks' },
+  },
   tracks: { birthday: 'Happy Birthday', jingle: 'Jingle Bells', twinkle: 'Twinkle Star', romantic: 'Romantic', calm: 'Calm', funny: 'Funny', party: 'Party' },
   filters: { none: 'Original', retro: 'Retro', bright: 'Vivid', bw: 'B&W', soft: 'Soft focus' },
   frames: { none: 'No frame', classic: 'Classic', gold: 'Gold', polaroid: 'Polaroid', hearts: 'Hearts', flowers: 'Flowers', sparkles: 'Sparkles', party: 'Party' },
@@ -200,6 +273,7 @@ const en: Dict = {
     asImage: 'As an image',
     asVideo: 'As animation (video)',
     videoReady: 'Video is ready!',
+    imageReady: 'Your card is ready!',
     saveFile: 'Save to device',
     musicPlay: 'Listen',
     musicStop: 'Pause',
@@ -207,6 +281,13 @@ const en: Dict = {
     musicOwn: 'My music',
     musicHint: 'Music plays in the video card. On iPhone, turn off silent mode to hear it here.',
     musicError: "Couldn't open this file. Try MP3 or M4A.",
+    presets: 'Ready styles — one tap',
+    fxTitle: 'Special effect',
+    lookTitle: 'Cinematic look',
+    cameraTitle: 'Camera motion',
+    introTitle: 'Intro',
+    replay: 'Replay from start',
+    textStyle: 'Text style',
   },
 };
 

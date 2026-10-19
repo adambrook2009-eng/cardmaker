@@ -3,6 +3,7 @@ import { useCard, type CardApi } from './state/useCard';
 import { useEffect } from 'react';
 import type { CategoryId } from './types';
 import { CATEGORIES, getCategory } from './data/categories';
+import { PRESETS } from './data/fx';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { CategoryPicker } from './components/CategoryPicker';
 import { Editor } from './components/Editor';
@@ -12,10 +13,14 @@ export default function App() {
   const api = useCard(lang);
   const { card } = api;
 
-  // Диплинк: ?c=love сразу открывает редактор нужной категории
+  // Диплинк: ?c=love сразу открывает редактор нужной категории, &p=aurora — с готовым стилем
   useEffect(() => {
-    const c = new URLSearchParams(location.search).get('c') as CategoryId | null;
-    if (c && CATEGORIES.some((x) => x.id === c)) api.start(c);
+    const q = new URLSearchParams(location.search);
+    const c = q.get('c') as CategoryId | null;
+    if (!c || !CATEGORIES.some((x) => x.id === c)) return;
+    api.start(c);
+    const preset = PRESETS.find((p) => p.id === q.get('p'));
+    if (preset) api.applyPreset(preset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

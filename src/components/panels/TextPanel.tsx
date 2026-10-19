@@ -3,6 +3,7 @@ import type { CardApi } from '../../state/useCard';
 import { useI18n } from '../../i18n/I18nProvider';
 import { PHRASES } from '../../data/phrases';
 import { FONTS, TEXT_ANIMS, TEXT_COLORS } from '../../data/options';
+import { TEXT_STYLES } from '../../data/fx';
 
 export function TextPanel({ api }: { api: CardApi }) {
   const { t, lang } = useI18n();
@@ -24,6 +25,15 @@ export function TextPanel({ api }: { api: CardApi }) {
         ✏️ {t.ui.ownText}
       </button>
       {editing && <textarea className="text-edit" rows={3} value={text.value} onChange={(e) => api.setCustomText(e.target.value)} dir="auto" />}
+
+      <h3>{t.ui.textStyle}</h3>
+      <div className="chips">
+        {TEXT_STYLES.map((s) => (
+          <button key={s.id} className={`chip text-style-${s.id} ${text.style === s.id ? 'active' : ''}`} onClick={() => api.patchText({ style: s.id })}>
+            {s.icon} {t.textStyles[s.id]}
+          </button>
+        ))}
+      </div>
 
       <h3>{t.ui.color}</h3>
       <div className="chips">

@@ -11,10 +11,12 @@ import { TextPanel } from './panels/TextPanel';
 import { AnimationPanel } from './panels/AnimationPanel';
 import { MusicPanel, useMusicPlaying } from './panels/MusicPanel';
 import { musicPlayer } from '../engine/audio';
+import { EffectsPanel } from './panels/EffectsPanel';
 
 const TABS = [
-  { id: 'background', icon: '🖼️', Panel: BackgroundPanel },
+  { id: 'effects', icon: '🔥', Panel: EffectsPanel },
   { id: 'text', icon: '💬', Panel: TextPanel },
+  { id: 'background', icon: '🖼️', Panel: BackgroundPanel },
   { id: 'stickers', icon: '🌸', Panel: StickerPanel },
   { id: 'animation', icon: '✨', Panel: AnimationPanel },
   { id: 'music', icon: '🎵', Panel: MusicPanel },
@@ -26,7 +28,7 @@ type TabId = (typeof TABS)[number]['id'];
 
 export function Editor({ api }: { api: CardApi }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<TabId>('text');
+  const [tab, setTab] = useState<TabId>('effects');
   const { card, selection } = api;
 
   // Нажали на текст/стикер на открытке — сразу открываем нужные инструменты
@@ -57,6 +59,7 @@ export function Editor({ api }: { api: CardApi }) {
         <CardCanvas
           card={card}
           selection={selection}
+          replayKey={api.replayKey}
           onSelect={api.setSelection}
           onMoveSticker={(id, x, y) => api.updateSticker(id, { x, y })}
           onResizeSticker={(id, size) => api.updateSticker(id, { size })}

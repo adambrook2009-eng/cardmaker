@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { CardState, Selection } from '../types';
 import { createAnimation } from '../engine/animations';
-import { renderScene, type Box } from '../engine/renderer';
+import { createEffect } from '../engine/effects';
+import { musicPlayer } from '../engine/audio';
+import { Pipeline } from '../engine/pipeline';
+import type { Box } from '../engine/renderer';
 import { SIZE } from '../engine/utils';
 
 interface Props {
   card: CardState;
   selection: Selection;
+  /** Меняется — превью начинается заново (чтобы увидеть появление). */
+  replayKey: number;
   onSelect: (s: Selection) => void;
   onMoveSticker: (id: string, x: number, y: number) => void;
   onResizeSticker: (id: string, size: number) => void;
@@ -14,8 +19,9 @@ interface Props {
 }
 
 /** Живое превью открытки: цикл requestAnimationFrame + перетаскивание стикеров и текста. */
-export function CardCanvas({ card, selection, onSelect, onMoveSticker, onResizeSticker, onMoveText }: Props) {
+export function CardCanvas({ card, selection, replayKey, onSelect, onMoveSticker, onResizeSticker, onMoveText }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pipeRef = useRef<Pipeline | null>(null);
   const textBox = useRef<Box | null>(null);
   const drag = useRef<{ dx: number; dy: number; sel: NonNullable<Selection> } | null>(null);
 
@@ -23,20 +29,32 @@ export function CardCanvas({ card, selection, onSelect, onMoveSticker, onResizeS
   const live = useRef({ card, selection });
   live.current = { card, selection };
 
-  const anim = useMemo(() => createAnimation(card.animation), [card.animation]);
+  const layers = useMemo(
+    () => ({ anim: createAnimation(card.animation), fx: createEffect(card.fx) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [card.animation, card.fx, replayKey]
+  );
 
   useEffect(() => {
-    const ctx = canvasRef.current!.getContext('2d')!;
+    const pipe = (pipeRef.current ??= new Pipeline(canvasRef.current!));
     const start = performance.now();
+    let last = start;
     let raf = 0;
     const loop = () => {
-      const t = (performance.now() - start) / 1000;
-      textBox.current = renderScene(ctx, live.current.card, t, anim, live.current.selection);
+      const now = performance.now();
+      const t = (now - start) / 1000;
+      textBox.current = pipe.render(live.current.card, t, layers, {
+        selection: live.current.selection,
+        level: musicPlayer.level(),
+        dt: (now - last) / 1000,
+      });
+      last = now;
       raf = requestAnimationFrame(loop);
     };
     loop();
     return () => cancelAnimationFrame(raf);
-  }, [anim]);
+    // смена появления/камеры — тоже перезапуск, чтобы сразу увидеть результат
+  }, [layers, card.intro, card.camera]);
 
   const toCanvas = (e: React.PointerEvent | React.WheelEvent) => {
     const r = canvasRef.current!.getBoundingClientRect();

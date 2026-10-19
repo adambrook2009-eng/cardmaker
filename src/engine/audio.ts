@@ -179,10 +179,16 @@ export interface MusicOptions {
 
 /**
  * Запускает музыку в указанный узел (динамики или поток записи видео).
- * Возвращает функцию остановки.
+ * Возвращает управление: остановка и текущая громкость (для эффектов «в такт»).
  */
-export function startMusic(choice: MusicChoice, ac: AudioContext, dest: AudioNode, opts: MusicOptions = {}): () => void {
-  if (choice.kind === 'none') return () => {};
+export interface MusicHandle {
+  stop(): void;
+  /** Сглаженная громкость 0…1. */
+  level(): number;
+}
+
+export function startMusic(choice: MusicChoice, ac: AudioContext, dest: AudioNode, opts: MusicOptions = {}): MusicHandle {
+  if (choice.kind === 'none') return { stop: () => {}, level: () => 0 };
   const start = ac.currentTime + 0.05;
   const vol = opts.volume ?? 0.9;
 
@@ -197,6 +203,22 @@ export function startMusic(choice: MusicChoice, ac: AudioContext, dest: AudioNod
   lp.type = 'lowpass';
   lp.frequency.value = 4500;
   master.connect(lp).connect(dest);
+
+  // «Ухо» для визуальных эффектов
+  const analyser = ac.createAnalyser();
+  analyser.fftSize = 1024;
+  master.connect(analyser);
+  const buf = new Float32Array(analyser.fftSize);
+  let smooth = 0;
+  const level = () => {
+    analyser.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+    const v = Math.min(1, Math.sqrt(sum / buf.length) * 4);
+    // быстрая атака, плавный спад — как стрелка индикатора
+    smooth = v > smooth ? v : smooth * 0.9 + v * 0.1;
+    return smooth;
+  };
 
   let timer = 0;
   let src: AudioBufferSourceNode | null = null;
@@ -231,7 +253,7 @@ export function startMusic(choice: MusicChoice, ac: AudioContext, dest: AudioNod
     timer = window.setInterval(tick, 60);
   }
 
-  return () => {
+  const stop = () => {
     clearInterval(timer);
     const now = ac.currentTime;
     master.gain.cancelScheduledValues(now);
@@ -244,35 +266,38 @@ export function startMusic(choice: MusicChoice, ac: AudioContext, dest: AudioNod
         /* уже остановлен */
       }
       lp.disconnect();
+      analyser.disconnect();
     }, 200);
   };
+  return { stop, level };
 }
 
 /* ---------- Плеер превью (один на приложение) ---------- */
 
-let stopPreview: (() => void) | null = null;
+let preview: MusicHandle | null = null;
 let playing = false;
 const subs = new Set<() => void>();
 const emit = () => subs.forEach((f) => f());
 
 export const musicPlayer = {
   play(choice: MusicChoice) {
-    stopPreview?.();
-    stopPreview = null;
+    preview?.stop();
+    preview = null;
     playing = choice.kind !== 'none';
     if (playing) {
       const ac = getAudioContext();
-      stopPreview = startMusic(choice, ac, ac.destination);
+      preview = startMusic(choice, ac, ac.destination);
     }
     emit();
   },
   stop() {
-    stopPreview?.();
-    stopPreview = null;
+    preview?.stop();
+    preview = null;
     playing = false;
     emit();
   },
   isPlaying: () => playing,
+  level: () => (preview ? preview.level() : 0),
   subscribe(fn: () => void) {
     subs.add(fn);
     return () => {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { CardState, CardText, CategoryId, Lang, Selection, Sticker } from '../types';
 import { getCategory } from '../data/categories';
 import { PHRASES } from '../data/phrases';
+import type { Preset } from '../data/fx';
 import { SIZE } from '../engine/utils';
 
 export function createCard(category: CategoryId, lang: Lang): CardState {
@@ -13,6 +14,10 @@ export function createCard(category: CategoryId, lang: Lang): CardState {
     frame: d.frame,
     animation: d.animation,
     music: { kind: 'builtin', id: d.music },
+    fx: d.fx,
+    look: d.look,
+    camera: d.camera,
+    intro: d.intro,
     stickers: [],
     text: {
       value: PHRASES[category][lang][0],
@@ -22,6 +27,7 @@ export function createCard(category: CategoryId, lang: Lang): CardState {
       font: 'rubik',
       size: 84,
       anim: d.textAnim,
+      style: d.textStyle,
     },
   };
 }
@@ -34,6 +40,8 @@ export function useCard(lang: Lang) {
   /** Индекс выбранной готовой фразы; null — пользователь отредактировал текст сам. */
   const [phraseIdx, setPhraseIdx] = useState<number | null>(0);
   const [selection, setSelection] = useState<Selection>(null);
+  const [replayKey, setReplayKey] = useState(0);
+  const replay = () => setReplayKey((k) => k + 1);
 
   const patch = useCallback((p: Partial<CardState>) => setCard((c) => (c ? { ...c, ...p } : c)), []);
   const patchText = useCallback((p: Partial<CardText>) => setCard((c) => (c ? { ...c, text: { ...c.text, ...p } } : c)), []);
@@ -93,6 +101,26 @@ export function useCard(lang: Lang) {
     setSelection(null);
   };
 
+  /** Готовый стиль: всё сразу + показ с начала, чтобы увидеть появление. */
+  const applyPreset = (p: Preset) => {
+    setCard((c) => {
+      if (!c) return c;
+      const keepPhoto = c.background.kind === 'photo';
+      return {
+        ...c,
+        fx: p.fx,
+        look: p.look,
+        camera: p.camera,
+        intro: p.intro,
+        animation: p.animation ?? c.animation,
+        frame: p.frame ?? c.frame,
+        background: !keepPhoto && p.background ? { kind: 'builtin', id: p.background } : c.background,
+        text: { ...c.text, style: p.textStyle },
+      };
+    });
+    replay();
+  };
+
   return {
     card,
     phraseIdx,
@@ -108,6 +136,9 @@ export function useCard(lang: Lang) {
     updateSticker,
     removeSticker,
     clearStickers,
+    applyPreset,
+    replayKey,
+    replay,
   };
 }
 

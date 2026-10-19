@@ -1,20 +1,26 @@
 import type { CardState } from '../types';
 import { createAnimation } from './animations';
-import { getAudioContext, startMusic } from './audio';
-import { renderScene } from './renderer';
-import { SIZE } from './utils';
+import { getAudioContext, startMusic, type MusicHandle } from './audio';
+import { createEffect } from './effects';
+import { Pipeline } from './pipeline';
+import type { Layers } from './renderer';
 
-function offscreen() {
-  const c = document.createElement('canvas');
-  c.width = c.height = SIZE;
-  return c;
-}
+const makeLayers = (state: CardState): Layers => ({ anim: createAnimation(state.animation), fx: createEffect(state.fx) });
 
-/** Статичная открытка (кадр анимации на 1.5 c — когда частицы уже «разлетелись»). */
+/**
+ * Статичная открытка: кадр на 2.4 c — появление уже закончилось.
+ * У спецэффектов есть физика, поэтому сначала быстро «прокручиваем» её до этого момента.
+ */
 export async function exportPNG(state: CardState): Promise<Blob> {
-  const c = offscreen();
-  renderScene(c.getContext('2d')!, state, 1.5, createAnimation(state.animation));
-  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png'));
+  const pipe = new Pipeline(document.createElement('canvas'), true);
+  const layers = makeLayers(state);
+  const T = 2.4;
+  if (layers.fx) {
+    const step = 1 / 15;
+    for (let t = 0; t < T; t += step) pipe.render(state, t, layers, { dt: step }, false);
+  }
+  pipe.render(state, T, layers);
+  return new Promise((res, rej) => pipe.out.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png'));
 }
 
 export const canRecordVideo = () => typeof MediaRecorder !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype;
@@ -29,17 +35,16 @@ function pickMime(withAudio: boolean): string {
 
 /** Анимированная открытка: записываем холст в видео (без серверов и ffmpeg). */
 export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p: number) => void): Promise<Blob> {
-  const c = offscreen();
-  const ctx = c.getContext('2d')!;
-  const anim = createAnimation(state.animation);
-  const tracks: MediaStreamTrack[] = c.captureStream(30).getVideoTracks();
+  const pipe = new Pipeline(document.createElement('canvas'), true);
+  const layers = makeLayers(state);
+  const tracks: MediaStreamTrack[] = pipe.out.captureStream(30).getVideoTracks();
 
   // Музыка: синтезатор/файл играет в поток, который записывается вместе с картинкой
-  let stopMusic = () => {};
+  let music: MusicHandle | null = null;
   if (state.music.kind !== 'none') {
     const ac = getAudioContext();
     const dest = ac.createMediaStreamDestination();
-    stopMusic = startMusic(state.music, ac, dest, { duration: seconds });
+    music = startMusic(state.music, ac, dest, { duration: seconds });
     tracks.push(...dest.stream.getAudioTracks());
   }
   const stream = new MediaStream(tracks);
@@ -54,10 +59,13 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
 
   rec.start(250);
   const start = performance.now();
+  let last = start;
   await new Promise<void>((resolve) => {
     const tick = () => {
-      const t = (performance.now() - start) / 1000;
-      renderScene(ctx, state, t, anim);
+      const now = performance.now();
+      const t = (now - start) / 1000;
+      pipe.render(state, t, layers, { dt: (now - last) / 1000, level: music?.level() ?? 0 });
+      last = now;
       onProgress?.(Math.min(1, t / seconds));
       if (t < seconds) requestAnimationFrame(tick);
       else resolve();
@@ -65,7 +73,7 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
     tick();
   });
   rec.stop();
-  stopMusic();
+  music?.stop();
   return done;
 }
 

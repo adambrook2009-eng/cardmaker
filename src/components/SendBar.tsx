@@ -3,7 +3,8 @@ import type { CardState } from '../types';
 import { useI18n } from '../i18n/I18nProvider';
 import { canRecordVideo, copyImage, download, exportPNG, exportVideo, extFor, shareOrDownload } from '../engine/export';
 
-const hasMotion = (c: CardState) => c.animation !== 'none' || c.text.anim !== 'none' || c.music.kind !== 'none';
+const hasMotion = (c: CardState) =>
+  c.animation !== 'none' || c.text.anim !== 'none' || c.music.kind !== 'none' || c.fx !== 'none' || c.camera !== 'none' || c.intro !== 'none';
 /** С музыкой видео длиннее — чтобы мелодия успела прозвучать. */
 const videoSeconds = (c: CardState) => (c.music.kind !== 'none' ? 10 : 5);
 
@@ -40,7 +41,12 @@ export function SendBar({ card }: { card: CardState }) {
 
   const send = async (kind: 'image' | 'video') => {
     setSheet(false);
-    if (kind === 'image') return shareBlob(await exportPNG(card));
+    if (kind === 'image') {
+      // Картинка со спецэффектами готовится до секунды — если долго, тоже просим второе нажатие
+      const t0 = performance.now();
+      const blob = await exportPNG(card);
+      return performance.now() - t0 > 600 ? setReadyVideo(blob) : shareBlob(blob);
+    }
     // Запись длится секунды — к её концу «разрешение от нажатия» истекает,
     // поэтому показываем кнопку «Отправить» для нового нажатия.
     const blob = await makeVideo();
@@ -88,7 +94,7 @@ export function SendBar({ card }: { card: CardState }) {
       {readyVideo && (
         <div className="sheet-backdrop" onClick={() => setReadyVideo(null)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            <h3>✅ {t.ui.videoReady}</h3>
+            <h3>✅ {readyVideo.type.startsWith('video/') ? t.ui.videoReady : t.ui.imageReady}</h3>
             <button
               className="big-action"
               onClick={() => {
