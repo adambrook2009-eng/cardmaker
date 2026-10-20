@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { CategoryId, Lang, MusicChoice } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { getAudioContext } from '../../engine/audio';
 import { defaultOffset, fmtTime } from '../../engine/jamendo';
-import { directLink, loadWebAudio, searchWebMusic, type WebSong } from '../../engine/webMusic';
+import { NATIVE_QUERY, directLink, loadWebAudio, scriptOf, searchWebMusic, type Script, type WebSong } from '../../engine/webMusic';
+
+/** Язык интерфейса → алфавит, на котором ищем песни «на своём языке». */
+const UI_SCRIPT: Record<Lang, Script | null> = { ru: 'cyr', he: 'heb', en: null };
 
 /**
  * Готовые запросы под повод — на языке интерфейса, чтобы не печатать.
@@ -64,6 +67,7 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
   const [error, setError] = useState('');
   const [link, setLink] = useState('');
   const cancel = useRef<() => void>(() => {});
+  const nativeLabel = UI_SCRIPT[lang] ? t.ui.webNative : '';
 
   /** label — что показать в поле (подсказка на языке интерфейса), query — что искать. */
   const run = (query: string, label?: string) => {
@@ -74,11 +78,20 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
     setSongs(null);
     setError('');
     setDone(false);
-    cancel.current = searchWebMusic(s, (res, fin) => {
-      setSongs(res);
-      setDone(fin);
-    });
+    cancel.current = searchWebMusic(
+      s,
+      (res, fin) => {
+        setSongs(res);
+        setDone(fin);
+      },
+      UI_SCRIPT[lang]
+    );
   };
+
+  // Ждём песни на языке запроса: они идут первыми, остальные — под разделителем
+  const script = q && q !== NATIVE_QUERY ? scriptOf(q) ?? (nativeLabel === q ? UI_SCRIPT[lang] : null) : null;
+  const nativeCount = songs?.filter((s) => s.native).length ?? 0;
+  const nativeTag = lang === 'ru' ? 'RU' : lang === 'he' ? 'עב' : '';
 
   useEffect(() => () => cancel.current(), []);
 
@@ -129,6 +142,11 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
         </button>
       </form>
       <div className="chips">
+        {nativeLabel && (
+          <button className={`chip ${q === nativeLabel ? 'active' : ''}`} onClick={() => run(NATIVE_QUERY, nativeLabel)}>
+            🎤 {nativeLabel}
+          </button>
+        )}
         {QUICK[category].map((w) => (
           <button key={w.q} className={`chip ${q === w.q || q === w[lang] ? 'active' : ''}`} onClick={() => run(w.q, w[lang])}>
             {w[lang]}
@@ -139,22 +157,28 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
       {error && <p className="hint error">{error}</p>}
       {!done && <p className="hint">{t.ui.webLoading}</p>}
       {done && songs && songs.length === 0 && <p className="hint">{t.ui.webNothing}</p>}
+      {done && script && songs && songs.length > 0 && nativeCount === 0 && <p className="hint notice">{t.ui.webNoNative}</p>}
 
       {songs && songs.length > 0 && (
         <div className="song-list">
           {songs.map((s) => {
             const active = activeId === s.id;
             return (
-              <button key={s.id} className={`song ${active ? 'active' : ''}`} onClick={() => pick(s)} disabled={loadingId !== null}>
+              <Fragment key={s.id}>
+              <button className={`song ${active ? 'active' : ''}`} onClick={() => pick(s)} disabled={loadingId !== null}>
                 {s.image ? <img src={s.image} alt="" loading="lazy" /> : <span className="song-cover">{s.source === 'wikimedia' ? '📻' : s.source === 'archive' ? '💿' : '🎵'}</span>}
                 <span className="song-meta">
-                  <span className="song-name">{s.title}</span>
+                  <span className="song-name">
+                    {s.native && nativeTag && <span className="lang-tag">{nativeTag}</span>}
+                    {s.title}
+                  </span>
                   <span className="song-artist">
                     {s.artist} · {s.license}
                   </span>
                 </span>
                 <span className="song-dur">{loadingId === s.id ? '⏳' : active ? '🔊' : fmtTime(s.duration)}</span>
               </button>
+              </Fragment>
             );
           })}
         </div>

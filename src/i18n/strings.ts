@@ -71,6 +71,9 @@ interface Dict {
     webLinkHint: string;
     webLinkError: string;
     webNote: string;
+    webNative: string;
+    webNoNative: string;
+    webOtherLangs: string;
     presets: string;
     fxTitle: string;
     lookTitle: string;
@@ -165,6 +168,10 @@ const ru: Dict = {
     webLinkHint: 'Прямая ссылка на аудиофайл (например, из Dropbox). Некоторые сайты запрещают использовать свои файлы в других приложениях.',
     webLinkError: 'Не удалось открыть ссылку: сайт не разрешает или это не аудиофайл.',
     webNote: 'Только свободная музыка — общественное достояние и Creative Commons. Её можно законно вставлять в открытки.',
+    webNative: 'На русском',
+    webNoNative:
+      'Свободных песен на русском по этому запросу не нашлось — ниже похожие на других языках. Известные советские и современные песни защищены авторским правом, их здесь нет: используйте «Своя музыка».',
+    webOtherLangs: 'На других языках',
     presets: 'Готовые стили — в один клик',
     fxTitle: 'Спецэффект',
     lookTitle: 'Кино-обработка',
@@ -259,6 +266,9 @@ const he: Dict = {
     webLinkHint: 'קישור ישיר לקובץ שמע (למשל מ־Dropbox). חלק מהאתרים אוסרים שימוש בקבצים שלהם באפליקציות אחרות.',
     webLinkError: 'לא ניתן לפתוח את הקישור: האתר לא מאפשר או שזה לא קובץ שמע.',
     webNote: 'רק מוזיקה חופשית — נחלת הכלל ו־Creative Commons. מותר לשלב אותה בגלויות.',
+    webNative: 'בעברית',
+    webNoNative: 'לא נמצאו שירים חופשיים בעברית לחיפוש הזה — למטה שירים דומים בשפות אחרות. שירים מוכרים מוגנים בזכויות יוצרים ואינם כאן: השתמשו ב״מוזיקה שלי״.',
+    webOtherLangs: 'בשפות אחרות',
     presets: 'סגנונות מוכנים — בלחיצה אחת',
     fxTitle: 'אפקט מיוחד',
     lookTitle: 'עיבוד קולנועי',
@@ -353,6 +363,9 @@ const en: Dict = {
     webLinkHint: 'A direct link to an audio file (e.g. from Dropbox). Some sites forbid using their files in other apps.',
     webLinkError: "Couldn't open the link: the site doesn't allow it or it's not an audio file.",
     webNote: 'Free music only — public domain and Creative Commons. It is legal to use in cards.',
+    webNative: 'In English',
+    webNoNative: 'No free songs in this language for this search — similar ones in other languages below. Well-known songs are copyrighted and are not here: use “My music”.',
+    webOtherLangs: 'In other languages',
     presets: 'Ready styles — one tap',
     fxTitle: 'Special effect',
     lookTitle: 'Cinematic look',

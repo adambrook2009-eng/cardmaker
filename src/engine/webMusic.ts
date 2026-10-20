@@ -18,7 +18,18 @@ export interface WebSong {
   licenseUrl: string;
   source: 'wikimedia' | 'openverse' | 'archive' | 'link';
   image?: string;
+  /** Песня на языке запроса (русский/иврит) — показываем первой. */
+  native?: boolean;
 }
+
+export type Script = 'cyr' | 'heb';
+const SCRIPT_RE: Record<Script, RegExp> = { cyr: /[а-яё]/i, heb: /[֐-׿]/ };
+const ARCHIVE_LANG: Record<Script, string> = { cyr: 'language:(rus OR russian OR ru)', heb: 'language:(heb OR hebrew OR he)' };
+
+export const scriptOf = (s: string): Script | null => (SCRIPT_RE.cyr.test(s) ? 'cyr' : SCRIPT_RE.heb.test(s) ? 'heb' : null);
+
+/** Специальный запрос подсказки «На русском / בעברית»: просто свободные песни на этом языке. */
+export const NATIVE_QUERY = '__native__';
 
 const stripHtml = (s: string) => {
   const d = document.createElement('div');
@@ -32,6 +43,10 @@ const isNoDerivs = (license: string) => /(^|[\s-])nd(\b|-)/i.test(license);
 const NOT_MUSIC = /^(LL-Q|[a-z]{2,3}(-[a-z]{2})?-)|spoken wikipedia|wikipedia recording|pronunciation|произношение|audiobook|librivox|interview|speech|lecture|podcast|field recording|интервью|речь|лекция/i;
 /** Для открыток не подходят гимны, военная и политическая тематика. */
 const UNSUITABLE = /anthem|national|state song|\binno\b|hymne|гимн|המנון|military|army|navy\b|marines|soldier|division\b|regiment|war\b|battle|fascis|nazi|propaganda|partisan|revolution|военн|войн|армия|партизан|революц|солдат|parade|парад|מלחמה|צבא/i;
+/** Нецензурное — в приложении для поздравлений недопустимо (проверяем название и исполнителя). */
+const PROFANE = /f+u+c+k|\bshit|bitch|\bcunt|\bdick\b|\bporn|\bsex\b|\bnigg|\bwhore|хуй|хуе|хуё|пизд|бляд|\bбля\b|ёб|еба[нл]|\bсука\b|мудак|залуп|זונה|\bכוס\b|זין\b|שרמוט/i;
+export const isProfane = (s: string) => PROFANE.test(s);
+
 /** Записи вики-проектов (поздравления Википедии, новости, встречи) — это речь, а не музыка. */
 const WIKI_EVENT = /wikipedia|wikinews|wikimania|wikimedia|\bwiki\b|\bspeaker\b/i;
 
@@ -153,11 +168,15 @@ interface IaFile {
   length?: string;
 }
 
-async function searchArchive(q: string, signal: AbortSignal): Promise<WebSong[]> {
+/** lang — искать только релизы на этом языке; без terms — просто популярные релизы на нём. */
+async function searchArchive(q: string, signal: AbortSignal, lang?: Script): Promise<WebSong[]> {
   const terms = lucene(q);
-  if (!terms) return [];
+  if (!terms && !lang) return [];
+  const parts = ['collection:netlabels', 'mediatype:audio'];
+  if (lang) parts.push(ARCHIVE_LANG[lang]);
+  if (terms) parts.push(`(${terms})`);
   // без «/» в шаблонах: в поисковом языке Archive слэш начинает регулярное выражение
-  const query = `collection:netlabels AND mediatype:audio AND (${terms}) AND licenseurl:*creativecommons.org* AND NOT licenseurl:*publicdomain* AND NOT licenseurl:*nd*`;
+  const query = `${parts.join(' AND ')} AND licenseurl:*creativecommons.org* AND NOT licenseurl:*publicdomain* AND NOT licenseurl:*nd*`;
   const p = new URLSearchParams({ q: query, rows: '8', output: 'json' });
   for (const f of ['identifier', 'title', 'creator', 'licenseurl']) p.append('fl[]', f);
   p.append('sort[]', 'downloads desc');
@@ -184,6 +203,7 @@ async function searchArchive(q: string, signal: AbortSignal): Promise<WebSong[]>
               license: licenseShort(d.licenseurl),
               licenseUrl: d.licenseurl,
               source: 'archive' as const,
+              native: lang ? true : undefined,
             };
           })
           .filter((s) => s.duration >= 40 && s.duration <= 900 && !UNSUITABLE.test(s.title))
@@ -194,6 +214,7 @@ async function searchArchive(q: string, signal: AbortSignal): Promise<WebSong[]>
       }
     })
   );
+  // без слов запроса тексты треков не сортируем по совпадению — берём как есть
   return perItem.flat();
 }
 
@@ -230,7 +251,6 @@ const DICT: [RegExp, string][] = [
   [/утр|בוקר/i, 'morning'],
   [/лет[оа]|קיץ/i, 'summer'],
   [/зим|חורף/i, 'winter'],
-  [/песн|песен|שיר/i, 'song'],
   [/смешн|юмор|прикол|מצחיק/i, 'funny'],
 ];
 
@@ -243,17 +263,21 @@ export function translateQuery(q: string): string | null {
 
 /* ---------- Объединение и ранжирование ---------- */
 
-function rank(songs: WebSong[], queries: string[]): WebSong[] {
+function rank(songs: WebSong[], queries: string[], script: Script | null): WebSong[] {
   const words = queries.join(' ').toLowerCase().split(/\s+/).filter((w) => w.length > 1);
   const score = (s: WebSong) => {
     const title = s.title.toLowerCase();
     let v = 0;
-    if (words.some((w) => title.includes(w))) v += 3; // слово запроса в названии
+    // смысл запроса важнее языка: «день рождения» → сначала песни про день рождения,
+    // а среди них — на русском; песни на русском без совпадения — следом
+    if (words.some((w) => title.includes(w))) v += 6;
+    if (s.native) v += 4;
     if (s.duration >= 90 && s.duration <= 360) v += 1.5; // длительность «как у песни»
     if (s.source === 'archive' || s.source === 'openverse') v += 1; // музыкальные каталоги
     if (/\d{4} recording|cylinder|78rpm/i.test(title)) v -= 1; // старые граммофонные записи — ниже
     return v;
   };
+  if (script) for (const s of songs) s.native ||= SCRIPT_RE[script].test(s.title + ' ' + s.artist);
   return songs
     .map((s, i) => ({ s, v: score(s) - i * 0.001 })) // при равенстве — исходный порядок
     .sort((a, b) => b.v - a.v)
@@ -264,20 +288,34 @@ function rank(songs: WebSong[], queries: string[]): WebSong[] {
  * Ищем во всех источниках параллельно по исходному запросу и его английскому переводу.
  * Результаты показываются по мере прихода; Openverse ждём не дольше 4 секунд.
  */
-export function searchWebMusic(q: string, onResults: (songs: WebSong[], done: boolean) => void): () => void {
+export function searchWebMusic(
+  rawQ: string,
+  onResults: (songs: WebSong[], done: boolean) => void,
+  uiScript: Script | null = null
+): () => void {
   const ctrl = new AbortController();
   const ovCtrl = new AbortController();
   const timer = setTimeout(() => ovCtrl.abort(), 4000);
   ctrl.signal.addEventListener('abort', () => ovCtrl.abort());
-  const tr = translateQuery(q);
-  const queries = tr ? [q, tr] : [q];
+
+  const nativeOnly = rawQ === NATIVE_QUERY;
+  const q = nativeOnly ? '' : rawQ;
+  // Язык результатов: по буквам запроса, а для подсказки «На русском» — по языку интерфейса
+  const script = nativeOnly ? uiScript : scriptOf(q);
+  const tr = q ? translateQuery(q) : null;
+  const queries = [q, tr].filter(Boolean) as string[];
 
   let all: WebSong[] = [];
   const jobs: Promise<WebSong[]>[] = [];
+  if (script) {
+    // релизы на языке запроса: сначала по словам, и всегда — просто популярные на этом языке
+    if (q) jobs.push(searchArchive(q, ctrl.signal, script));
+    jobs.push(searchArchive('', ctrl.signal, script));
+  }
   for (const query of queries) {
     jobs.push(searchArchive(query, ctrl.signal), searchCommons(query, ctrl.signal));
   }
-  jobs.push(searchOpenverse(tr ?? q, ovCtrl.signal));
+  if (queries.length) jobs.push(searchOpenverse(tr ?? q, ovCtrl.signal));
 
   let pending = jobs.length;
   const settle = (songs: WebSong[]) => {
@@ -287,12 +325,13 @@ export function searchWebMusic(q: string, onResults: (songs: WebSong[], done: bo
     for (const s of songs) {
       const key = s.title.toLowerCase();
       if (seen.has(s.id) || titles.has(key)) continue; // один трек — один раз, даже из разных альбомов
+      if (isProfane(`${s.title} ${s.artist}`)) continue;
       seen.add(s.id);
       titles.add(key);
       all.push(s);
     }
     pending--;
-    onResults(rank(all, queries).slice(0, 40), pending === 0);
+    onResults(rank(all, queries, script).slice(0, 40), pending === 0);
   };
   for (const j of jobs) j.then(settle, () => settle([]));
   return () => {
