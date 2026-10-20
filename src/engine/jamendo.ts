@@ -115,8 +115,14 @@ export function loadSong(id: string): Promise<AudioBuffer> {
   return p;
 }
 
-/** Обычно припев — примерно через треть песни; короткие треки играем с начала. */
-export const defaultOffset = (duration: number) => (duration > 60 ? Math.round(Math.min(45, duration * 0.3)) : 0);
+/**
+ * Обычно припев — примерно через треть песни; короткие треки играем с начала.
+ * clip — длина видео: начинаем так, чтобы до конца песни хватило на всё видео.
+ */
+export const defaultOffset = (duration: number, clip = 60) => {
+  const chorus = duration > 60 ? Math.min(45, duration * 0.3) : 0;
+  return Math.round(Math.max(0, Math.min(chorus, duration - clip)));
+};
 
 export function licenseLabel(url: string) {
   const m = /licenses\/([a-z-]+)\//.exec(url);

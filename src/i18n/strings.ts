@@ -46,6 +46,12 @@ interface Dict {
     asVideo: string;
     videoReady: string;
     imageReady: string;
+    videoLength: string;
+    oneMinute: string;
+    sec: string;
+    timeLeft: string;
+    keepScreen: string;
+    cancel: string;
     saveFile: string;
     musicPlay: string;
     musicStop: string;
@@ -148,6 +154,12 @@ const ru: Dict = {
     asVideo: 'Анимацией (видео)',
     videoReady: 'Видео готово!',
     imageReady: 'Открытка готова!',
+    videoLength: 'Длина видео',
+    oneMinute: '1 мин',
+    sec: 'с',
+    timeLeft: 'Осталось {s} с',
+    keepScreen: 'не выключайте экран',
+    cancel: 'Отмена',
     saveFile: 'Сохранить на устройство',
     musicPlay: 'Слушать',
     musicStop: 'Пауза',
@@ -252,6 +264,12 @@ const he: Dict = {
     asVideo: 'כאנימציה (וידאו)',
     videoReady: 'הסרטון מוכן!',
     imageReady: 'הגלויה מוכנה!',
+    videoLength: 'אורך הסרטון',
+    oneMinute: 'דקה',
+    sec: 'שנ׳',
+    timeLeft: 'נותרו {s} שנ׳',
+    keepScreen: 'אל תכבו את המסך',
+    cancel: 'ביטול',
     saveFile: 'שמירה במכשיר',
     musicPlay: 'האזנה',
     musicStop: 'השהיה',
@@ -355,6 +373,12 @@ const en: Dict = {
     asVideo: 'As animation (video)',
     videoReady: 'Video is ready!',
     imageReady: 'Your card is ready!',
+    videoLength: 'Video length',
+    oneMinute: '1 min',
+    sec: 's',
+    timeLeft: '{s} s left',
+    keepScreen: "don't turn off the screen",
+    cancel: 'Cancel',
     saveFile: 'Save to device',
     musicPlay: 'Listen',
     musicStop: 'Pause',

@@ -34,7 +34,7 @@ function pickMime(withAudio: boolean): string {
 }
 
 /** Анимированная открытка: записываем холст в видео (без серверов и ffmpeg). */
-export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p: number) => void): Promise<Blob> {
+export async function exportVideo(state: CardState, seconds = 60, onProgress?: (p: number) => void, signal?: AbortSignal): Promise<Blob> {
   const pipe = new Pipeline(document.createElement('canvas'), true);
   const layers = makeLayers(state);
   const tracks: MediaStreamTrack[] = pipe.out.captureStream(30).getVideoTracks();
@@ -49,7 +49,9 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
   }
   const stream = new MediaStream(tracks);
   const mimeType = pickMime(tracks.length > 1);
-  const rec = new MediaRecorder(stream, { mimeType: mimeType || undefined, videoBitsPerSecond: 6_000_000 });
+  // Длинное видео — битрейт ниже: минута ≈ 20 МБ, проходит в мессенджеры
+  const videoBitsPerSecond = seconds > 20 ? 2_500_000 : 6_000_000;
+  const rec = new MediaRecorder(stream, { mimeType: mimeType || undefined, videoBitsPerSecond, audioBitsPerSecond: 128_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   // Тип без параметров кодека («video/mp4», не «video/mp4;codecs=avc1») — иначе
@@ -60,8 +62,13 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
   rec.start(250);
   const start = performance.now();
   let last = start;
+  let cancelled = false;
   await new Promise<void>((resolve) => {
     const tick = () => {
+      if (signal?.aborted) {
+        cancelled = true;
+        return resolve();
+      }
       const now = performance.now();
       const t = (now - start) / 1000;
       pipe.render(state, t, layers, { dt: (now - last) / 1000, level: music?.level() ?? 0 });
@@ -74,6 +81,7 @@ export async function exportVideo(state: CardState, seconds = 5, onProgress?: (p
   });
   rec.stop();
   music?.stop();
+  if (cancelled) throw new DOMException('Recording cancelled', 'AbortError');
   return done;
 }
 

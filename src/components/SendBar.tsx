@@ -1,15 +1,45 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { CardState } from '../types';
 import { useI18n } from '../i18n/I18nProvider';
 import { canRecordVideo, copyImage, download, exportPNG, exportVideo, extFor, shareOrDownload } from '../engine/export';
 
 const hasMotion = (c: CardState) =>
   c.animation !== 'none' || c.text.anim !== 'none' || c.music.kind !== 'none' || c.fx !== 'none' || c.camera !== 'none' || c.intro !== 'none';
-/** С музыкой видео длиннее — чтобы мелодия успела прозвучать. */
-const videoSeconds = (c: CardState) => (c.music.kind === 'file' ? 15 : c.music.kind !== 'none' ? 10 : 5);
+
+/** Длительность видео на выбор; по умолчанию — минута. Выбор запоминается. */
+const DURATIONS = [15, 30, 60] as const;
+const DUR_KEY = 'cardmaker.videoSeconds';
+function savedSeconds(): number {
+  try {
+    const v = Number(localStorage.getItem(DUR_KEY));
+    return (DURATIONS as readonly number[]).includes(v) ? v : 60;
+  } catch {
+    return 60;
+  }
+}
+
+/** Не даём экрану телефона погаснуть, пока пишется видео (иначе запись остановится). */
+async function keepScreenOn(): Promise<() => void> {
+  try {
+    const lock = await navigator.wakeLock?.request('screen');
+    return () => void lock?.release().catch(() => {});
+  } catch {
+    return () => {};
+  }
+}
 
 export function SendBar({ card }: { card: CardState }) {
   const { t } = useI18n();
+  const [seconds, setSecondsState] = useState(savedSeconds);
+  const setSeconds = (s: number) => {
+    setSecondsState(s);
+    try {
+      localStorage.setItem(DUR_KEY, String(s));
+    } catch {
+      /* приватный режим — просто не запомним */
+    }
+  };
+  const abort = useRef<AbortController | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState('');
   const [sheet, setSheet] = useState(false);
@@ -21,16 +51,24 @@ export function SendBar({ card }: { card: CardState }) {
     setTimeout(() => setToast(''), 2200);
   };
 
-  const makeVideo = async () => {
+  /** null — запись отменили. */
+  const makeVideo = async (): Promise<Blob | null> => {
     if (!canRecordVideo()) {
       flash(t.ui.noVideo);
       return exportPNG(card);
     }
+    abort.current = new AbortController();
+    const release = await keepScreenOn();
     setProgress(0);
     try {
-      return await exportVideo(card, videoSeconds(card), setProgress);
+      return await exportVideo(card, seconds, setProgress, abort.current.signal);
+    } catch (e) {
+      if ((e as DOMException).name === 'AbortError') return null;
+      throw e;
     } finally {
+      release();
       setProgress(null);
+      abort.current = null;
     }
   };
 
@@ -50,12 +88,14 @@ export function SendBar({ card }: { card: CardState }) {
     // Запись длится секунды — к её концу «разрешение от нажатия» истекает,
     // поэтому показываем кнопку «Отправить» для нового нажатия.
     const blob = await makeVideo();
+    if (!blob) return;
     if (blob.type.startsWith('video/')) setReadyVideo(blob);
     else shareBlob(blob);
   };
 
   const save = async (kind: 'image' | 'video') => {
     const blob = kind === 'video' ? await makeVideo() : await exportPNG(card);
+    if (!blob) return;
     download(blob, `card.${extFor(blob)}`);
     flash(t.ui.downloaded);
   };
@@ -76,6 +116,16 @@ export function SendBar({ card }: { card: CardState }) {
         </button>
         {'ClipboardItem' in window && <button onClick={copy}>📋 {t.ui.copy}</button>}
       </div>
+      {hasMotion(card) && (
+        <div className="duration-row" role="radiogroup" aria-label={t.ui.videoLength}>
+          <span>⏱ {t.ui.videoLength}:</span>
+          {DURATIONS.map((s) => (
+            <button key={s} role="radio" aria-checked={seconds === s} className={`chip ${seconds === s ? 'active' : ''}`} onClick={() => setSeconds(s)}>
+              {s === 60 ? t.ui.oneMinute : `${s} ${t.ui.sec}`}
+            </button>
+          ))}
+        </div>
+      )}
 
       {sheet && (
         <div className="sheet-backdrop" onClick={() => setSheet(false)}>
@@ -126,6 +176,12 @@ export function SendBar({ card }: { card: CardState }) {
             <div className="progress">
               <div style={{ width: `${Math.round(progress * 100)}%` }} />
             </div>
+            <p className="hint">
+              {t.ui.timeLeft.replace('{s}', String(Math.max(0, Math.ceil(seconds * (1 - progress)))))} · {t.ui.keepScreen}
+            </p>
+            <button className="big-action secondary" onClick={() => abort.current?.abort()}>
+              ✖ {t.ui.cancel}
+            </button>
           </div>
         </div>
       )}

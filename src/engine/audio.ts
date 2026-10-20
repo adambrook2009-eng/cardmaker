@@ -226,9 +226,13 @@ export function startMusic(choice: MusicChoice, ac: AudioContext, dest: AudioNod
   if (choice.kind === 'file') {
     src = ac.createBufferSource();
     src.buffer = choice.buffer;
+    const offset = (choice.offset ?? 0) % choice.buffer.duration;
     src.loop = true;
+    // если видео длиннее оставшейся части песни — повторяем выбранный фрагмент, а не начало
+    src.loopStart = offset;
+    src.loopEnd = choice.buffer.duration;
     src.connect(master);
-    src.start(start, (choice.offset ?? 0) % choice.buffer.duration);
+    src.start(start, offset);
   } else {
     // Классический «планировщик с упреждением»: ноты ставятся в очередь на 0.25 c вперёд
     const track = getTrack(choice.id);

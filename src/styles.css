@@ -157,6 +157,8 @@ h1, h3 { margin: 0; }
 .send-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .send-bar button { padding: 10px 16px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-weight: 700; }
 .send-bar button:disabled { opacity: 0.4; cursor: default; }
+.duration-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; font-size: 14px; font-weight: 700; color: var(--muted); }
+.duration-row .chip { padding: 6px 12px; font-size: 14px; }
 .send-bar .primary, .big-action { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
 
 .tools { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }

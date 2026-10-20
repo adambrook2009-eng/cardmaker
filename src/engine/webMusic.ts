@@ -403,8 +403,8 @@ export function searchByCategory(tags: string, uiScript: Script | null, onResult
 
 const buffers = new Map<string, Promise<AudioBuffer>>();
 
-/** Для открытки хватает первых минут песни: 4 МБ ≈ 1,5–4 минуты mp3 — грузится в разы быстрее. */
-const PART = 4 * 1024 * 1024;
+/** Для минутной открытки хватает первых минут песни: 8 МБ ≈ 2–5 минут mp3 — быстрее, чем целиком. */
+const PART = 8 * 1024 * 1024;
 
 async function fetchAudio(url: string, partial: boolean): Promise<ArrayBuffer> {
   const r = await fetch(url, partial ? { headers: { Range: `bytes=0-${PART - 1}` } } : undefined);
