@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CardState, CardText, CategoryId, Lang, Selection, Sticker } from '../types';
+import type { Background, CardState, CardText, CategoryId, Lang, Selection, Sticker } from '../types';
+
+export type PhotosBackground = Extract<Background, { kind: 'photos' }>;
 import { getCategory } from '../data/categories';
 import { PHRASES } from '../data/phrases';
 import type { Preset } from '../data/fx';
@@ -41,6 +43,12 @@ export function useCard(lang: Lang) {
   const [phraseIdx, setPhraseIdx] = useState<number | null>(0);
   const [selection, setSelection] = useState<Selection>(null);
   const [replayKey, setReplayKey] = useState(0);
+  /** Свои фото сохраняются, даже если временно выбрали готовый фон — к ним можно вернуться. */
+  const [photoBg, setPhotoBg] = useState<PhotosBackground | null>(null);
+  const setPhotos = (bg: PhotosBackground | null) => {
+    setPhotoBg(bg);
+    patch({ background: bg ?? { kind: 'builtin', id: card ? getCategory(card.category).defaults.background : 'pastel' } });
+  };
   const replay = () => setReplayKey((k) => k + 1);
 
   const patch = useCallback((p: Partial<CardState>) => setCard((c) => (c ? { ...c, ...p } : c)), []);
@@ -105,7 +113,7 @@ export function useCard(lang: Lang) {
   const applyPreset = (p: Preset) => {
     setCard((c) => {
       if (!c) return c;
-      const keepPhoto = c.background.kind === 'photo';
+      const keepPhoto = c.background.kind === 'photos';
       return {
         ...c,
         fx: p.fx,
@@ -139,6 +147,8 @@ export function useCard(lang: Lang) {
     applyPreset,
     replayKey,
     replay,
+    photoBg,
+    setPhotos,
   };
 }
 

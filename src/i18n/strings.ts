@@ -1,4 +1,4 @@
-import type { AnimId, CameraId, CategoryId, FilterId, FrameId, FxId, IntroId, Lang, LookId, TextAnimId, TextStyleId } from '../types';
+import type { AnimId, CameraId, CategoryId, FilterId, FrameId, FxId, IntroId, Lang, LookId, SlideTransition, TextAnimId, TextStyleId } from '../types';
 import type { TrackId } from '../data/music';
 import type { PresetId } from '../data/fx';
 
@@ -48,6 +48,16 @@ interface Dict {
     imageReady: string;
     previewTitle: string;
     edit: string;
+    uploadPhotos: string;
+    addPhotos: string;
+    photosLoading: string;
+    myPhotos: string;
+    usePhotos: string;
+    slideEvery: string;
+    slideTransition: string;
+    transitions: Record<SlideTransition, string>;
+    slideshowHint: string;
+    photosLimit: string;
     videoLength: string;
     oneMinute: string;
     sec: string;
@@ -158,6 +168,16 @@ const ru: Dict = {
     imageReady: 'Открытка готова!',
     previewTitle: 'Предпросмотр',
     edit: 'Изменить',
+    uploadPhotos: 'Мои фото (можно несколько)',
+    addPhotos: 'Добавить ещё фото',
+    photosLoading: 'Загружаем фото',
+    myPhotos: 'Мои фото',
+    usePhotos: 'Вернуть мои фото на фон',
+    slideEvery: 'Смена фото каждые',
+    slideTransition: 'Переход',
+    transitions: { fade: 'Плавно', slide: 'Сдвиг', zoom: 'Зум' },
+    slideshowHint: 'Слайд-шоу: {n} фото, полный круг — {s} с. В видео фото сменяются так же, как здесь.',
+    photosLimit: 'Можно добавить не больше {n} фото — лишние пропущены.',
     videoLength: 'Длина видео',
     oneMinute: '1 мин',
     sec: 'с',
@@ -270,6 +290,16 @@ const he: Dict = {
     imageReady: 'הגלויה מוכנה!',
     previewTitle: 'תצוגה מקדימה',
     edit: 'עריכה',
+    uploadPhotos: 'התמונות שלי (אפשר כמה)',
+    addPhotos: 'הוספת תמונות',
+    photosLoading: 'טוענים תמונות',
+    myPhotos: 'התמונות שלי',
+    usePhotos: 'החזרת התמונות שלי לרקע',
+    slideEvery: 'החלפת תמונה כל',
+    slideTransition: 'מעבר',
+    transitions: { fade: 'עמעום', slide: 'החלקה', zoom: 'זום' },
+    slideshowHint: 'מצגת: {n} תמונות, סבב מלא — {s} שנ׳. בסרטון התמונות מתחלפות בדיוק כמו כאן.',
+    photosLimit: 'אפשר להוסיף עד {n} תמונות — השאר דולגו.',
     videoLength: 'אורך הסרטון',
     oneMinute: 'דקה',
     sec: 'שנ׳',
@@ -381,6 +411,16 @@ const en: Dict = {
     imageReady: 'Your card is ready!',
     previewTitle: 'Preview',
     edit: 'Edit',
+    uploadPhotos: 'My photos (several allowed)',
+    addPhotos: 'Add more photos',
+    photosLoading: 'Loading photos',
+    myPhotos: 'My photos',
+    usePhotos: 'Use my photos again',
+    slideEvery: 'Change photo every',
+    slideTransition: 'Transition',
+    transitions: { fade: 'Fade', slide: 'Slide', zoom: 'Zoom' },
+    slideshowHint: 'Slideshow: {n} photos, full loop — {s} s. In the video photos change exactly like here.',
+    photosLimit: 'You can add up to {n} photos — the rest were skipped.',
     videoLength: 'Video length',
     oneMinute: '1 min',
     sec: 's',

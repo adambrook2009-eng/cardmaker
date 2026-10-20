@@ -43,18 +43,64 @@ function drawCover(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement) {
   ctx.drawImage(src, (SIZE - src.width * k) / 2, (SIZE - src.height * k) / 2, src.width * k, src.height * k);
 }
 
-export function drawBackground(ctx: CanvasRenderingContext2D, state: Pick<CardState, 'background'>, filter: FilterId) {
-  const src = state.background.kind === 'photo' ? state.background.img : getBackgroundCanvas(state.background.id);
+/** Один кадр фона с фильтром; scale > 1 — приближение от центра (для «зума»). */
+function drawLayer(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, filter: FilterId, scale = 1) {
   ctx.save();
+  if (scale !== 1) {
+    ctx.translate(SIZE / 2, SIZE / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-SIZE / 2, -SIZE / 2);
+  }
   if (supportsFilter) ctx.filter = FILTERS.find((f) => f.id === filter)!.css;
   drawCover(ctx, src);
   if (filter === 'soft' && supportsFilter) {
     // мягкий фокус: размытая копия поверх оригинала
     ctx.filter = 'blur(10px) brightness(1.1)';
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha *= 0.45;
     drawCover(ctx, src);
   }
   ctx.restore();
+}
+
+/** Длительность смены слайдов, секунды. */
+const SLIDE_TRANSITION = 0.9;
+
+/**
+ * Фон в момент t. Несколько своих фото — слайд-шоу: каждое показывается slideSec секунд,
+ * последние 0,9 с плавно сменяется следующим (наплыв, сдвиг или наплыв с медленным приближением).
+ */
+export function drawBackground(ctx: CanvasRenderingContext2D, state: Pick<CardState, 'background'>, filter: FilterId, t = 0) {
+  const bg = state.background;
+  if (bg.kind === 'photos' && bg.imgs.length > 1) {
+    const n = bg.imgs.length;
+    const d = bg.slideSec;
+    const idx = Math.floor(t / d) % n;
+    const local = t % d;
+    const cur = bg.imgs[idx];
+    const next = bg.imgs[(idx + 1) % n];
+    const k = easeInOutCubic(clamp01((local - (d - SLIDE_TRANSITION)) / SLIDE_TRANSITION));
+    // «зум»: каждое фото медленно приближается, пока показывается (эффект Кена Бёрнса)
+    const zoom = (lt: number) => (bg.transition === 'zoom' ? 1 + 0.1 * clamp01(lt / d) : 1);
+
+    if (bg.transition === 'slide' && k > 0) {
+      ctx.save();
+      ctx.translate(-k * SIZE, 0);
+      drawLayer(ctx, cur, filter);
+      ctx.translate(SIZE, 0);
+      drawLayer(ctx, next, filter);
+      ctx.restore();
+    } else {
+      drawLayer(ctx, cur, filter, zoom(local));
+      if (k > 0) {
+        ctx.save();
+        ctx.globalAlpha = k;
+        drawLayer(ctx, next, filter, zoom(0));
+        ctx.restore();
+      }
+    }
+  } else {
+    drawLayer(ctx, bg.kind === 'photos' ? bg.imgs[0] : getBackgroundCanvas(bg.id), filter);
+  }
 
   if (filter === 'retro') {
     const g = ctx.createRadialGradient(SIZE / 2, SIZE / 2, SIZE * 0.3, SIZE / 2, SIZE / 2, SIZE * 0.75);
@@ -332,7 +378,7 @@ export function renderScene(ctx: CanvasRenderingContext2D, state: CardState, t: 
 
   ctx.save();
   cameraTransform(ctx, state.camera, t);
-  drawBackground(ctx, state, state.filter);
+  drawBackground(ctx, state, state.filter, t);
   ctx.restore();
 
   if (layers.fx?.layer === 'back') layers.fx.draw(ctx, t, dt, level);

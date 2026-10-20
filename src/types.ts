@@ -19,8 +19,13 @@ export type TextStyleId = 'plain' | 'gold' | 'neon' | 'extrude';
 
 export type Background =
   | { kind: 'builtin'; id: string }
-  /** Фото пользователя, заранее уменьшенное до разумного размера (быстро на телефонах). */
-  | { kind: 'photo'; img: HTMLCanvasElement };
+  /**
+   * Свои фото — одно или слайд-шоу. Каждое заранее уменьшено (быстро на телефонах).
+   * slideSec — сколько секунд показывать каждое фото, transition — как сменяются.
+   */
+  | { kind: 'photos'; imgs: HTMLCanvasElement[]; slideSec: number; transition: SlideTransition };
+
+export type SlideTransition = 'fade' | 'slide' | 'zoom';
 
 export type MusicChoice =
   | { kind: 'none' }
