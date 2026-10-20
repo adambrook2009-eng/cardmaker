@@ -46,6 +46,8 @@ interface Dict {
     asVideo: string;
     videoReady: string;
     imageReady: string;
+    previewTitle: string;
+    edit: string;
     videoLength: string;
     oneMinute: string;
     sec: string;
@@ -154,6 +156,8 @@ const ru: Dict = {
     asVideo: 'Анимацией (видео)',
     videoReady: 'Видео готово!',
     imageReady: 'Открытка готова!',
+    previewTitle: 'Предпросмотр',
+    edit: 'Изменить',
     videoLength: 'Длина видео',
     oneMinute: '1 мин',
     sec: 'с',
@@ -264,6 +268,8 @@ const he: Dict = {
     asVideo: 'כאנימציה (וידאו)',
     videoReady: 'הסרטון מוכן!',
     imageReady: 'הגלויה מוכנה!',
+    previewTitle: 'תצוגה מקדימה',
+    edit: 'עריכה',
     videoLength: 'אורך הסרטון',
     oneMinute: 'דקה',
     sec: 'שנ׳',
@@ -373,6 +379,8 @@ const en: Dict = {
     asVideo: 'As animation (video)',
     videoReady: 'Video is ready!',
     imageReady: 'Your card is ready!',
+    previewTitle: 'Preview',
+    edit: 'Edit',
     videoLength: 'Video length',
     oneMinute: '1 min',
     sec: 's',

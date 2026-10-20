@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { CardState } from '../types';
 import { useI18n } from '../i18n/I18nProvider';
 import { canRecordVideo, copyImage, download, exportPNG, exportVideo, extFor, shareOrDownload } from '../engine/export';
+import { PreviewSheet } from './PreviewSheet';
 
 const hasMotion = (c: CardState) =>
   c.animation !== 'none' || c.text.anim !== 'none' || c.music.kind !== 'none' || c.fx !== 'none' || c.camera !== 'none' || c.intro !== 'none';
@@ -43,8 +44,8 @@ export function SendBar({ card }: { card: CardState }) {
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState('');
   const [sheet, setSheet] = useState(false);
-  /** Готовое видео ждёт второго нажатия: share() разрешён только сразу после жеста пользователя. */
-  const [readyVideo, setReadyVideo] = useState<Blob | null>(null);
+  /** Готовый файл в окне предпросмотра (картинка или видео). */
+  const [preview, setPreview] = useState<Blob | null>(null);
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -77,27 +78,14 @@ export function SendBar({ card }: { card: CardState }) {
     if (res !== 'cancelled') flash(res === 'shared' ? t.ui.shared : t.ui.downloaded);
   };
 
-  const send = async (kind: 'image' | 'video') => {
+  /**
+   * Любое действие (отправить / сохранить картинку / видео) сначала показывает предпросмотр
+   * готового файла. Отправка — уже из него, по новому нажатию: так «Поделиться» всегда откроется.
+   */
+  const prepare = async (kind: 'image' | 'video') => {
     setSheet(false);
-    if (kind === 'image') {
-      // Картинка со спецэффектами готовится до секунды — если долго, тоже просим второе нажатие
-      const t0 = performance.now();
-      const blob = await exportPNG(card);
-      return performance.now() - t0 > 600 ? setReadyVideo(blob) : shareBlob(blob);
-    }
-    // Запись длится секунды — к её концу «разрешение от нажатия» истекает,
-    // поэтому показываем кнопку «Отправить» для нового нажатия.
-    const blob = await makeVideo();
-    if (!blob) return;
-    if (blob.type.startsWith('video/')) setReadyVideo(blob);
-    else shareBlob(blob);
-  };
-
-  const save = async (kind: 'image' | 'video') => {
     const blob = kind === 'video' ? await makeVideo() : await exportPNG(card);
-    if (!blob) return;
-    download(blob, `card.${extFor(blob)}`);
-    flash(t.ui.downloaded);
+    if (blob) setPreview(blob);
   };
 
   const copy = async () => {
@@ -107,11 +95,11 @@ export function SendBar({ card }: { card: CardState }) {
   return (
     <>
       <div className="send-bar">
-        <button className="primary" onClick={() => (hasMotion(card) ? setSheet(true) : send('image'))}>
+        <button className="primary" onClick={() => (hasMotion(card) ? setSheet(true) : prepare('image'))}>
           📤 {t.ui.share}
         </button>
-        <button onClick={() => save('image')}>🖼️ {t.ui.savePng}</button>
-        <button onClick={() => save('video')} disabled={!hasMotion(card)}>
+        <button onClick={() => prepare('image')}>🖼️ {t.ui.savePng}</button>
+        <button onClick={() => prepare('video')} disabled={!hasMotion(card)}>
           🎬 {t.ui.saveVideo}
         </button>
         {'ClipboardItem' in window && <button onClick={copy}>📋 {t.ui.copy}</button>}
@@ -131,42 +119,31 @@ export function SendBar({ card }: { card: CardState }) {
         <div className="sheet-backdrop" onClick={() => setSheet(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <h3>{t.ui.sendTitle}</h3>
-            <button className="big-action" onClick={() => send('video')}>
+            <button className="big-action" onClick={() => prepare('video')}>
               🎬 {t.ui.asVideo}
             </button>
-            <button className="big-action secondary" onClick={() => send('image')}>
+            <button className="big-action secondary" onClick={() => prepare('image')}>
               🖼️ {t.ui.asImage}
             </button>
           </div>
         </div>
       )}
 
-      {readyVideo && (
-        <div className="sheet-backdrop" onClick={() => setReadyVideo(null)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            <h3>✅ {readyVideo.type.startsWith('video/') ? t.ui.videoReady : t.ui.imageReady}</h3>
-            <button
-              className="big-action"
-              onClick={() => {
-                const blob = readyVideo;
-                setReadyVideo(null);
-                shareBlob(blob);
-              }}
-            >
-              📤 {t.ui.share}
-            </button>
-            <button
-              className="big-action secondary"
-              onClick={() => {
-                download(readyVideo, `card.${extFor(readyVideo)}`);
-                setReadyVideo(null);
-                flash(t.ui.downloaded);
-              }}
-            >
-              💾 {t.ui.saveFile}
-            </button>
-          </div>
-        </div>
+      {preview && (
+        <PreviewSheet
+          blob={preview}
+          onSend={() => {
+            const blob = preview;
+            setPreview(null);
+            shareBlob(blob);
+          }}
+          onSave={() => {
+            download(preview, `card.${extFor(preview)}`);
+            setPreview(null);
+            flash(t.ui.downloaded);
+          }}
+          onClose={() => setPreview(null)}
+        />
       )}
 
       {progress !== null && (
