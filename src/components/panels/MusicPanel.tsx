@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n/I18nProvider';
 import { TRACKS } from '../../data/music';
 import { decodeAudioFile, getAudioContext, musicPlayer } from '../../engine/audio';
 import { defaultOffset, findSongs, fmtTime, licenseLabel, loadSong, songsEnabled, type Song, type SongList } from '../../engine/jamendo';
+import { WebMusicSearch } from './WebMusicSearch';
 
 export const useMusicPlaying = () => useSyncExternalStore(musicPlayer.subscribe, musicPlayer.isPlaying);
 
@@ -69,7 +70,7 @@ export function MusicPanel({ api }: { api: CardApi }) {
             🎵 <b>{music.credit ?? music.name}</b>
             {music.license && (
               <a href={music.license} target="_blank" rel="noreferrer" className="license">
-                {licenseLabel(music.license)}
+                {/creativecommons\.org\/licenses/.test(music.license) ? licenseLabel(music.license) : 'ⓘ'}
               </a>
             )}
           </div>
@@ -95,6 +96,9 @@ export function MusicPanel({ api }: { api: CardApi }) {
         📁 {t.ui.musicOwnPick}
       </button>
       {fileError && <p className="hint error">{t.ui.musicError}</p>}
+
+      <h3>🌐 {t.ui.webTitle}</h3>
+      <WebMusicSearch category={category} activeId={music.kind === 'file' ? music.songId : undefined} onChoose={choose} />
 
       {songsEnabled() && (
         <>

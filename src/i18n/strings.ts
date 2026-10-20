@@ -61,6 +61,16 @@ interface Dict {
     songStart: string;
     melodiesTitle: string;
     musicOwnPick: string;
+    webTitle: string;
+    webPlaceholder: string;
+    webSearch: string;
+    webLoading: string;
+    webNothing: string;
+    webLoadError: string;
+    webLinkTitle: string;
+    webLinkHint: string;
+    webLinkError: string;
+    webNote: string;
     presets: string;
     fxTitle: string;
     lookTitle: string;
@@ -145,6 +155,16 @@ const ru: Dict = {
     songStart: 'Начать с',
     melodiesTitle: 'Мелодии',
     musicOwnPick: 'Выбрать песню с устройства',
+    webTitle: 'Поиск музыки в интернете',
+    webPlaceholder: 'Название, жанр или настроение…',
+    webSearch: 'Найти',
+    webLoading: 'Ищем…',
+    webNothing: 'Ничего не нашлось. Попробуйте другое слово — по-английски находится больше.',
+    webLoadError: 'Не удалось загрузить эту запись. Выберите другую.',
+    webLinkTitle: 'Вставить ссылку на mp3',
+    webLinkHint: 'Прямая ссылка на аудиофайл (например, из Dropbox). Некоторые сайты запрещают использовать свои файлы в других приложениях.',
+    webLinkError: 'Не удалось открыть ссылку: сайт не разрешает или это не аудиофайл.',
+    webNote: 'Только свободная музыка — общественное достояние и Creative Commons. Её можно законно вставлять в открытки.',
     presets: 'Готовые стили — в один клик',
     fxTitle: 'Спецэффект',
     lookTitle: 'Кино-обработка',
@@ -229,6 +249,16 @@ const he: Dict = {
     songStart: 'להתחיל מ־',
     melodiesTitle: 'מנגינות',
     musicOwnPick: 'בחירת שיר מהמכשיר',
+    webTitle: 'חיפוש מוזיקה באינטרנט',
+    webPlaceholder: 'שם, ז׳אנר או מצב רוח…',
+    webSearch: 'חיפוש',
+    webLoading: 'מחפשים…',
+    webNothing: 'לא נמצא כלום. נסו מילה אחרת — באנגלית יש יותר תוצאות.',
+    webLoadError: 'לא ניתן לטעון את ההקלטה. בחרו אחרת.',
+    webLinkTitle: 'הדבקת קישור ל־mp3',
+    webLinkHint: 'קישור ישיר לקובץ שמע (למשל מ־Dropbox). חלק מהאתרים אוסרים שימוש בקבצים שלהם באפליקציות אחרות.',
+    webLinkError: 'לא ניתן לפתוח את הקישור: האתר לא מאפשר או שזה לא קובץ שמע.',
+    webNote: 'רק מוזיקה חופשית — נחלת הכלל ו־Creative Commons. מותר לשלב אותה בגלויות.',
     presets: 'סגנונות מוכנים — בלחיצה אחת',
     fxTitle: 'אפקט מיוחד',
     lookTitle: 'עיבוד קולנועי',
@@ -313,6 +343,16 @@ const en: Dict = {
     songStart: 'Start at',
     melodiesTitle: 'Melodies',
     musicOwnPick: 'Pick a song from your device',
+    webTitle: 'Search music online',
+    webPlaceholder: 'Title, genre or mood…',
+    webSearch: 'Search',
+    webLoading: 'Searching…',
+    webNothing: 'Nothing found. Try another word.',
+    webLoadError: "Couldn't load this recording. Pick another one.",
+    webLinkTitle: 'Paste an mp3 link',
+    webLinkHint: 'A direct link to an audio file (e.g. from Dropbox). Some sites forbid using their files in other apps.',
+    webLinkError: "Couldn't open the link: the site doesn't allow it or it's not an audio file.",
+    webNote: 'Free music only — public domain and Creative Commons. It is legal to use in cards.',
     presets: 'Ready styles — one tap',
     fxTitle: 'Special effect',
     lookTitle: 'Cinematic look',
