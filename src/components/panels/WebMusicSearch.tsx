@@ -1,18 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CategoryId, MusicChoice } from '../../types';
+import type { CategoryId, Lang, MusicChoice } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { getAudioContext } from '../../engine/audio';
 import { defaultOffset, fmtTime } from '../../engine/jamendo';
 import { directLink, loadWebAudio, searchWebMusic, type WebSong } from '../../engine/webMusic';
 
-/** Готовые запросы под повод — чтобы не печатать. Английские слова дают больше результатов. */
-const QUICK: Record<CategoryId, string[]> = {
-  congrats: ['happy birthday', 'celebration', 'party', 'fanfare'],
-  wishes: ['happy', 'morning', 'jazz', 'waltz'],
-  sympathy: ['calm', 'piano', 'requiem', 'peaceful'],
-  funny: ['funny', 'polka', 'ragtime', 'circus'],
-  kind: ['lullaby', 'children', 'nature', 'guitar'],
-  love: ['love song', 'romance', 'serenade', 'waltz'],
+/**
+ * Готовые запросы под повод — на языке интерфейса, чтобы не печатать.
+ * Ищем по английскому слову (q): в свободных каталогах почти всё подписано по-английски.
+ */
+type Quick = { q: string } & Record<Lang, string>;
+const QUICK: Record<CategoryId, Quick[]> = {
+  congrats: [
+    { q: 'happy birthday', ru: 'День рождения', he: 'יום הולדת', en: 'Birthday' },
+    { q: 'celebration', ru: 'Праздник', he: 'חגיגה', en: 'Celebration' },
+    { q: 'party dance', ru: 'Вечеринка', he: 'מסיבה', en: 'Party' },
+    { q: 'happy pop', ru: 'Весёлый поп', he: 'פופ שמח', en: 'Happy pop' },
+  ],
+  wishes: [
+    { q: 'happy', ru: 'Радостная', he: 'שמחה', en: 'Happy' },
+    { q: 'morning', ru: 'Утро', he: 'בוקר', en: 'Morning' },
+    { q: 'uplifting', ru: 'Вдохновляющая', he: 'מעוררת השראה', en: 'Uplifting' },
+    { q: 'jazz', ru: 'Джаз', he: 'ג׳אז', en: 'Jazz' },
+  ],
+  sympathy: [
+    { q: 'calm piano', ru: 'Спокойное пианино', he: 'פסנתר רגוע', en: 'Calm piano' },
+    { q: 'ambient', ru: 'Тихая', he: 'שקטה', en: 'Ambient' },
+    { q: 'sad', ru: 'Грустная', he: 'עצובה', en: 'Sad' },
+    { q: 'acoustic', ru: 'Акустика', he: 'אקוסטי', en: 'Acoustic' },
+  ],
+  funny: [
+    { q: 'funny', ru: 'Смешная', he: 'מצחיקה', en: 'Funny' },
+    { q: 'polka', ru: 'Полька', he: 'פולקה', en: 'Polka' },
+    { q: 'chiptune', ru: '8-бит', he: '8 ביט', en: '8-bit' },
+    { q: 'ragtime', ru: 'Регтайм', he: 'רגטיים', en: 'Ragtime' },
+  ],
+  kind: [
+    { q: 'lullaby', ru: 'Колыбельная', he: 'שיר ערש', en: 'Lullaby' },
+    { q: 'children', ru: 'Детская', he: 'לילדים', en: 'Kids' },
+    { q: 'acoustic guitar', ru: 'Гитара', he: 'גיטרה', en: 'Guitar' },
+    { q: 'summer', ru: 'Лето', he: 'קיץ', en: 'Summer' },
+  ],
+  love: [
+    { q: 'love song', ru: 'Песня о любви', he: 'שיר אהבה', en: 'Love song' },
+    { q: 'romantic', ru: 'Романтика', he: 'רומנטי', en: 'Romantic' },
+    { q: 'wedding', ru: 'Свадьба', he: 'חתונה', en: 'Wedding' },
+    { q: 'waltz', ru: 'Вальс', he: 'ואלס', en: 'Waltz' },
+  ],
 };
 
 interface Props {
@@ -22,7 +56,7 @@ interface Props {
 }
 
 export function WebMusicSearch({ category, activeId, onChoose }: Props) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [q, setQ] = useState('');
   const [songs, setSongs] = useState<WebSong[] | null>(null);
   const [done, setDone] = useState(true);
@@ -31,11 +65,12 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
   const [link, setLink] = useState('');
   const cancel = useRef<() => void>(() => {});
 
-  const run = (query: string) => {
+  /** label — что показать в поле (подсказка на языке интерфейса), query — что искать. */
+  const run = (query: string, label?: string) => {
     const s = query.trim();
     if (!s) return;
     cancel.current();
-    setQ(s);
+    setQ(label ?? s);
     setSongs(null);
     setError('');
     setDone(false);
@@ -95,8 +130,8 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
       </form>
       <div className="chips">
         {QUICK[category].map((w) => (
-          <button key={w} className="chip" onClick={() => run(w)}>
-            {w}
+          <button key={w.q} className={`chip ${q === w.q || q === w[lang] ? 'active' : ''}`} onClick={() => run(w.q, w[lang])}>
+            {w[lang]}
           </button>
         ))}
       </div>
@@ -111,7 +146,7 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
             const active = activeId === s.id;
             return (
               <button key={s.id} className={`song ${active ? 'active' : ''}`} onClick={() => pick(s)} disabled={loadingId !== null}>
-                {s.image ? <img src={s.image} alt="" loading="lazy" /> : <span className="song-cover">{s.source === 'wikimedia' ? '📻' : '🎵'}</span>}
+                {s.image ? <img src={s.image} alt="" loading="lazy" /> : <span className="song-cover">{s.source === 'wikimedia' ? '📻' : s.source === 'archive' ? '💿' : '🎵'}</span>}
                 <span className="song-meta">
                   <span className="song-name">{s.title}</span>
                   <span className="song-artist">

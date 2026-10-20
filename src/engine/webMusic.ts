@@ -16,7 +16,7 @@ export interface WebSong {
   url: string;
   license: string;
   licenseUrl: string;
-  source: 'wikimedia' | 'openverse' | 'link';
+  source: 'wikimedia' | 'openverse' | 'archive' | 'link';
   image?: string;
 }
 
@@ -31,7 +31,9 @@ const isNoDerivs = (license: string) => /(^|[\s-])nd(\b|-)/i.test(license);
 /** Отсеиваем то, что музыкой не является: произношение слов, начитанные статьи и т. п. */
 const NOT_MUSIC = /^(LL-Q|[a-z]{2,3}(-[a-z]{2})?-)|spoken wikipedia|wikipedia recording|pronunciation|произношение|audiobook|librivox|interview|speech|lecture|podcast|field recording|интервью|речь|лекция/i;
 /** Для открыток не подходят гимны, военная и политическая тематика. */
-const UNSUITABLE = /anthem|national|\binno\b|hymne|гимн|המנון|military|army|navy\b|marines|soldier|war\b|battle|fascis|nazi|propaganda|partisan|revolution|военн|войн|армия|партизан|революц|солдат|parade|парад|מלחמה|צבא/i;
+const UNSUITABLE = /anthem|national|state song|\binno\b|hymne|гимн|המנון|military|army|navy\b|marines|soldier|division\b|regiment|war\b|battle|fascis|nazi|propaganda|partisan|revolution|военн|войн|армия|партизан|революц|солдат|parade|парад|מלחמה|צבא/i;
+/** Записи вики-проектов (поздравления Википедии, новости, встречи) — это речь, а не музыка. */
+const WIKI_EVENT = /wikipedia|wikinews|wikimania|wikimedia|\bwiki\b|\bspeaker\b/i;
 
 async function searchCommons(q: string, signal: AbortSignal): Promise<WebSong[]> {
   const p = new URLSearchParams({
@@ -67,7 +69,9 @@ async function searchCommons(q: string, signal: AbortSignal): Promise<WebSong[]>
       const name = pg.title.replace(/^File:/, '').replace(/\.[^.]+$/, '');
       const license = v.extmetadata?.LicenseShortName?.value ?? '';
       const dur = v.duration ?? 0;
-      if (NOT_MUSIC.test(name) || UNSUITABLE.test(name) || dur < 40 || dur > 900 || !license || isNoDerivs(license)) return [];
+      const artistRaw = v.extmetadata?.Artist?.value ?? '';
+      if (NOT_MUSIC.test(name) || UNSUITABLE.test(name) || WIKI_EVENT.test(name) || /speaker:/i.test(artistRaw)) return [];
+      if (dur < 40 || dur > 900 || !license || isNoDerivs(license)) return [];
       // mp3 играет везде, включая iPhone; Ogg — не везде
       const mp3 = v.derivatives?.find((d) => d.type.startsWith('audio/mpeg'))?.src;
       return [
@@ -119,31 +123,178 @@ async function searchOpenverse(q: string, signal: AbortSignal): Promise<WebSong[
     }));
 }
 
+/* ---------- Internet Archive: только коллекция netlabels ---------- */
+
 /**
- * Ищем в обоих источниках параллельно. Commons приходит быстро и показывается сразу,
- * Openverse дополняет список, если успел ответить за 5 секунд.
+ * Netlabels — релизы независимых лейблов, которые сами выпускают музыку под CC.
+ * Общую коллекцию (opensource_audio) не берём: туда заливают и чужие хиты с ложной лицензией.
+ * По той же причине не принимаем «public domain mark» — им чаще всего злоупотребляют.
+ */
+const lucene = (s: string) => s.replace(/[+\-&|!(){}[\]^"~*?:\\/]/g, ' ').trim();
+
+const parseLength = (v: string | undefined) => {
+  if (!v) return 0;
+  if (v.includes(':')) return v.split(':').reduce((acc, x) => acc * 60 + parseFloat(x), 0);
+  return parseFloat(v) || 0;
+};
+
+interface IaDoc {
+  identifier: string;
+  title: string;
+  creator?: string | string[];
+  licenseurl: string;
+}
+interface IaFile {
+  name: string;
+  format?: string;
+  title?: string;
+  creator?: string;
+  artist?: string;
+  length?: string;
+}
+
+async function searchArchive(q: string, signal: AbortSignal): Promise<WebSong[]> {
+  const terms = lucene(q);
+  if (!terms) return [];
+  // без «/» в шаблонах: в поисковом языке Archive слэш начинает регулярное выражение
+  const query = `collection:netlabels AND mediatype:audio AND (${terms}) AND licenseurl:*creativecommons.org* AND NOT licenseurl:*publicdomain* AND NOT licenseurl:*nd*`;
+  const p = new URLSearchParams({ q: query, rows: '8', output: 'json' });
+  for (const f of ['identifier', 'title', 'creator', 'licenseurl']) p.append('fl[]', f);
+  p.append('sort[]', 'downloads desc');
+  const res = await fetch(`https://archive.org/advancedsearch.php?${p}`, { signal });
+  const docs = ((await res.json()).response?.docs ?? []) as IaDoc[];
+  const words = terms.toLowerCase().split(/\s+/);
+
+  // У каждого альбома берём до 3 треков; сначала те, где слова запроса есть в названии
+  const perItem = await Promise.all(
+    docs.map(async (d) => {
+      try {
+        const meta = await (await fetch(`https://archive.org/metadata/${encodeURIComponent(d.identifier)}`, { signal })).json();
+        const album = Array.isArray(d.creator) ? d.creator[0] : d.creator;
+        return ((meta.files ?? []) as IaFile[])
+          .filter((f) => /\.mp3$/i.test(f.name) && !/_64kb|_vbr\.m3u|sample/i.test(f.name))
+          .map((f) => {
+            const title = f.title || f.name.split('/').pop()!.replace(/\.mp3$/i, '').replace(/[_]+/g, ' ');
+            return {
+              id: `ia:${d.identifier}/${f.name}`,
+              title,
+              artist: f.artist || f.creator || album || d.title,
+              duration: parseLength(f.length),
+              url: `https://archive.org/download/${encodeURIComponent(d.identifier)}/${f.name.split('/').map(encodeURIComponent).join('/')}`,
+              license: licenseShort(d.licenseurl),
+              licenseUrl: d.licenseurl,
+              source: 'archive' as const,
+            };
+          })
+          .filter((s) => s.duration >= 40 && s.duration <= 900 && !UNSUITABLE.test(s.title))
+          .sort((a, b) => +words.some((w) => b.title.toLowerCase().includes(w)) - +words.some((w) => a.title.toLowerCase().includes(w)))
+          .slice(0, 3);
+      } catch {
+        return [];
+      }
+    })
+  );
+  return perItem.flat();
+}
+
+const licenseShort = (url: string) => {
+  const m = /licenses\/([a-z-]+)\/([\d.]+)?/.exec(url);
+  return m ? `CC ${m[1].toUpperCase()}${m[2] ? ' ' + m[2] : ''}` : 'CC';
+};
+
+/* ---------- Перевод запроса ---------- */
+
+/** В свободных каталогах почти всё подписано по-английски — дополняем запрос переводом. */
+const DICT: [RegExp, string][] = [
+  [/д(е|ё)нь рожд|днюх|др\b|יום הולדת|יומולדת/i, 'birthday'],
+  [/любо?в|люблю|любим|влюбл|אהבה|אוהב/i, 'love'],
+  [/романт|רומנט/i, 'romantic'],
+  [/свадьб|חתונה/i, 'wedding'],
+  [/праздн|торжеств|חג|חגיג/i, 'celebration'],
+  [/новый год|новогод|שנה טובה|ראש השנה/i, 'new year'],
+  [/рожд(е|ё)ств|christmas|כריסמס/i, 'christmas'],
+  [/вечерин|туса|מסיבה/i, 'party'],
+  [/весел|весёл|радост|счаст|שמח|אושר/i, 'happy'],
+  [/груст|печал|עצוב/i, 'sad'],
+  [/спокой|тих|релакс|רגוע|שקט/i, 'calm'],
+  [/пианин|фортепиан|פסנתר/i, 'piano'],
+  [/гитар|גיטרה/i, 'guitar'],
+  [/джаз|ג׳אז|ג'אז/i, 'jazz'],
+  [/рок\b|רוק/i, 'rock'],
+  [/танц|ריקוד|לרקוד/i, 'dance'],
+  [/детск|дети|ילדים/i, 'children'],
+  [/колыбел|שיר ערש/i, 'lullaby'],
+  [/вальс|ואלס/i, 'waltz'],
+  [/мам|אמא/i, 'mother'],
+  [/спасиб|благодар|תודה/i, 'thank you'],
+  [/утр|בוקר/i, 'morning'],
+  [/лет[оа]|קיץ/i, 'summer'],
+  [/зим|חורף/i, 'winter'],
+  [/песн|песен|שיר/i, 'song'],
+  [/смешн|юмор|прикол|מצחיק/i, 'funny'],
+];
+
+export function translateQuery(q: string): string | null {
+  const en = [...new Set(DICT.filter(([re]) => re.test(q)).map(([, w]) => w))];
+  if (!en.length) return null;
+  const t = en.join(' ');
+  return t.toLowerCase() === q.trim().toLowerCase() ? null : t;
+}
+
+/* ---------- Объединение и ранжирование ---------- */
+
+function rank(songs: WebSong[], queries: string[]): WebSong[] {
+  const words = queries.join(' ').toLowerCase().split(/\s+/).filter((w) => w.length > 1);
+  const score = (s: WebSong) => {
+    const title = s.title.toLowerCase();
+    let v = 0;
+    if (words.some((w) => title.includes(w))) v += 3; // слово запроса в названии
+    if (s.duration >= 90 && s.duration <= 360) v += 1.5; // длительность «как у песни»
+    if (s.source === 'archive' || s.source === 'openverse') v += 1; // музыкальные каталоги
+    if (/\d{4} recording|cylinder|78rpm/i.test(title)) v -= 1; // старые граммофонные записи — ниже
+    return v;
+  };
+  return songs
+    .map((s, i) => ({ s, v: score(s) - i * 0.001 })) // при равенстве — исходный порядок
+    .sort((a, b) => b.v - a.v)
+    .map((x) => x.s);
+}
+
+/**
+ * Ищем во всех источниках параллельно по исходному запросу и его английскому переводу.
+ * Результаты показываются по мере прихода; Openverse ждём не дольше 4 секунд.
  */
 export function searchWebMusic(q: string, onResults: (songs: WebSong[], done: boolean) => void): () => void {
   const ctrl = new AbortController();
   const ovCtrl = new AbortController();
-  const timer = setTimeout(() => ovCtrl.abort(), 5000);
+  const timer = setTimeout(() => ovCtrl.abort(), 4000);
   ctrl.signal.addEventListener('abort', () => ovCtrl.abort());
+  const tr = translateQuery(q);
+  const queries = tr ? [q, tr] : [q];
+
   let all: WebSong[] = [];
-  let pending = 2;
-  const add = (songs: WebSong[]) => {
-    const seen = new Set(all.map((s) => s.title.toLowerCase()));
-    all = [...all, ...songs.filter((s) => !seen.has(s.title.toLowerCase()))];
-  };
-  const finish = () => {
+  const jobs: Promise<WebSong[]>[] = [];
+  for (const query of queries) {
+    jobs.push(searchArchive(query, ctrl.signal), searchCommons(query, ctrl.signal));
+  }
+  jobs.push(searchOpenverse(tr ?? q, ovCtrl.signal));
+
+  let pending = jobs.length;
+  const settle = (songs: WebSong[]) => {
     if (ctrl.signal.aborted) return;
+    const seen = new Set(all.map((s) => s.id));
+    const titles = new Set(all.map((s) => s.title.toLowerCase()));
+    for (const s of songs) {
+      const key = s.title.toLowerCase();
+      if (seen.has(s.id) || titles.has(key)) continue; // один трек — один раз, даже из разных альбомов
+      seen.add(s.id);
+      titles.add(key);
+      all.push(s);
+    }
     pending--;
-    onResults(all.slice(0, 30), pending === 0);
+    onResults(rank(all, queries).slice(0, 40), pending === 0);
   };
-  searchCommons(q, ctrl.signal).then(add).catch(() => {}).finally(finish);
-  searchOpenverse(q, ovCtrl.signal).then(add).catch(() => {}).finally(() => {
-    clearTimeout(timer);
-    finish();
-  });
+  for (const j of jobs) j.then(settle, () => settle([]));
   return () => {
     clearTimeout(timer);
     ctrl.abort();
