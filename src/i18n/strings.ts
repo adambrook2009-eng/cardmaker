@@ -72,6 +72,11 @@ interface Dict {
     webLinkError: string;
     webNote: string;
     webNative: string;
+    webOrCategory: string;
+    webMore: string;
+    webLess: string;
+    webResultsFor: string;
+    webTitleNotFound: string;
     webNoNative: string;
     webOtherLangs: string;
     presets: string;
@@ -159,7 +164,7 @@ const ru: Dict = {
     melodiesTitle: 'Мелодии',
     musicOwnPick: 'Выбрать песню с устройства',
     webTitle: 'Поиск музыки в интернете',
-    webPlaceholder: 'Название, жанр или настроение…',
+    webPlaceholder: 'Название песни…',
     webSearch: 'Найти',
     webLoading: 'Ищем…',
     webNothing: 'Ничего не нашлось. Попробуйте другое слово — по-английски находится больше.',
@@ -169,6 +174,12 @@ const ru: Dict = {
     webLinkError: 'Не удалось открыть ссылку: сайт не разрешает или это не аудиофайл.',
     webNote: 'Только свободная музыка — общественное достояние и Creative Commons. Её можно законно вставлять в открытки.',
     webNative: 'На русском',
+    webOrCategory: 'Или выберите категорию:',
+    webMore: 'Ещё',
+    webLess: 'Свернуть',
+    webResultsFor: 'Песня',
+    webTitleNotFound:
+      'Песня «{q}» не найдена среди свободной музыки. Известные песни защищены авторским правом и в свободном доступе их нет — если песня есть у вас, добавьте её через «Своя музыка».',
     webNoNative:
       'Свободных песен на русском по этому запросу не нашлось — ниже похожие на других языках. Известные советские и современные песни защищены авторским правом, их здесь нет: используйте «Своя музыка».',
     webOtherLangs: 'На других языках',
@@ -257,7 +268,7 @@ const he: Dict = {
     melodiesTitle: 'מנגינות',
     musicOwnPick: 'בחירת שיר מהמכשיר',
     webTitle: 'חיפוש מוזיקה באינטרנט',
-    webPlaceholder: 'שם, ז׳אנר או מצב רוח…',
+    webPlaceholder: 'שם השיר…',
     webSearch: 'חיפוש',
     webLoading: 'מחפשים…',
     webNothing: 'לא נמצא כלום. נסו מילה אחרת — באנגלית יש יותר תוצאות.',
@@ -267,6 +278,12 @@ const he: Dict = {
     webLinkError: 'לא ניתן לפתוח את הקישור: האתר לא מאפשר או שזה לא קובץ שמע.',
     webNote: 'רק מוזיקה חופשית — נחלת הכלל ו־Creative Commons. מותר לשלב אותה בגלויות.',
     webNative: 'בעברית',
+    webOrCategory: 'או בחרו קטגוריה:',
+    webMore: 'עוד',
+    webLess: 'פחות',
+    webResultsFor: 'שיר',
+    webTitleNotFound:
+      'השיר «{q}» לא נמצא במוזיקה החופשית. שירים מוכרים מוגנים בזכויות יוצרים ואינם זמינים בחינם — אם השיר נמצא אצלכם, הוסיפו אותו דרך ״מוזיקה שלי״.',
     webNoNative: 'לא נמצאו שירים חופשיים בעברית לחיפוש הזה — למטה שירים דומים בשפות אחרות. שירים מוכרים מוגנים בזכויות יוצרים ואינם כאן: השתמשו ב״מוזיקה שלי״.',
     webOtherLangs: 'בשפות אחרות',
     presets: 'סגנונות מוכנים — בלחיצה אחת',
@@ -354,7 +371,7 @@ const en: Dict = {
     melodiesTitle: 'Melodies',
     musicOwnPick: 'Pick a song from your device',
     webTitle: 'Search music online',
-    webPlaceholder: 'Title, genre or mood…',
+    webPlaceholder: 'Song title…',
     webSearch: 'Search',
     webLoading: 'Searching…',
     webNothing: 'Nothing found. Try another word.',
@@ -364,6 +381,12 @@ const en: Dict = {
     webLinkError: "Couldn't open the link: the site doesn't allow it or it's not an audio file.",
     webNote: 'Free music only — public domain and Creative Commons. It is legal to use in cards.',
     webNative: 'In English',
+    webOrCategory: 'Or pick a category:',
+    webMore: 'More',
+    webLess: 'Less',
+    webResultsFor: 'Song',
+    webTitleNotFound:
+      'The song “{q}” was not found among free music. Well-known songs are copyrighted and not freely available — if you have the song, add it via “My music”.',
     webNoNative: 'No free songs in this language for this search — similar ones in other languages below. Well-known songs are copyrighted and are not here: use “My music”.',
     webOtherLangs: 'In other languages',
     presets: 'Ready styles — one tap',

@@ -123,6 +123,8 @@ h1, h3 { margin: 0; }
 .search-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
 .primary-sm { flex: none; width: 54px; min-height: 54px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-size: 20px; }
 .primary-sm:disabled { opacity: 0.5; }
+.search-caption { margin: 4px 0 0; font-weight: 800; font-size: 15px; }
+.chip.ghost { background: transparent; border-style: dashed; color: var(--muted); }
 .lang-tag { display: inline-block; margin-inline-end: 6px; padding: 1px 6px; border-radius: 6px; font-size: 11px; font-weight: 800; vertical-align: 2px; background: var(--accent); color: #fff; }
 .hint.notice { padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--text); }
 .link-box summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 4px 0; }

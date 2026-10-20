@@ -1,56 +1,16 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CategoryId, Lang, MusicChoice } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { getAudioContext } from '../../engine/audio';
 import { defaultOffset, fmtTime } from '../../engine/jamendo';
-import { NATIVE_QUERY, directLink, loadWebAudio, scriptOf, searchWebMusic, type Script, type WebSong } from '../../engine/webMusic';
+import { directLink, loadWebAudio, searchByCategory, searchByTitle, type Script, type WebSong } from '../../engine/webMusic';
+import { FIRST_FOR, MUSIC_CATEGORIES, type MusicCategory } from '../../data/musicCategories';
 
 /** Язык интерфейса → алфавит, на котором ищем песни «на своём языке». */
 const UI_SCRIPT: Record<Lang, Script | null> = { ru: 'cyr', he: 'heb', en: null };
 
-/**
- * Готовые запросы под повод — на языке интерфейса, чтобы не печатать.
- * Ищем по английскому слову (q): в свободных каталогах почти всё подписано по-английски.
- */
-type Quick = { q: string } & Record<Lang, string>;
-const QUICK: Record<CategoryId, Quick[]> = {
-  congrats: [
-    { q: 'happy birthday', ru: 'День рождения', he: 'יום הולדת', en: 'Birthday' },
-    { q: 'celebration', ru: 'Праздник', he: 'חגיגה', en: 'Celebration' },
-    { q: 'party dance', ru: 'Вечеринка', he: 'מסיבה', en: 'Party' },
-    { q: 'happy pop', ru: 'Весёлый поп', he: 'פופ שמח', en: 'Happy pop' },
-  ],
-  wishes: [
-    { q: 'happy', ru: 'Радостная', he: 'שמחה', en: 'Happy' },
-    { q: 'morning', ru: 'Утро', he: 'בוקר', en: 'Morning' },
-    { q: 'uplifting', ru: 'Вдохновляющая', he: 'מעוררת השראה', en: 'Uplifting' },
-    { q: 'jazz', ru: 'Джаз', he: 'ג׳אז', en: 'Jazz' },
-  ],
-  sympathy: [
-    { q: 'calm piano', ru: 'Спокойное пианино', he: 'פסנתר רגוע', en: 'Calm piano' },
-    { q: 'ambient', ru: 'Тихая', he: 'שקטה', en: 'Ambient' },
-    { q: 'sad', ru: 'Грустная', he: 'עצובה', en: 'Sad' },
-    { q: 'acoustic', ru: 'Акустика', he: 'אקוסטי', en: 'Acoustic' },
-  ],
-  funny: [
-    { q: 'funny', ru: 'Смешная', he: 'מצחיקה', en: 'Funny' },
-    { q: 'polka', ru: 'Полька', he: 'פולקה', en: 'Polka' },
-    { q: 'chiptune', ru: '8-бит', he: '8 ביט', en: '8-bit' },
-    { q: 'ragtime', ru: 'Регтайм', he: 'רגטיים', en: 'Ragtime' },
-  ],
-  kind: [
-    { q: 'lullaby', ru: 'Колыбельная', he: 'שיר ערש', en: 'Lullaby' },
-    { q: 'children', ru: 'Детская', he: 'לילדים', en: 'Kids' },
-    { q: 'acoustic guitar', ru: 'Гитара', he: 'גיטרה', en: 'Guitar' },
-    { q: 'summer', ru: 'Лето', he: 'קיץ', en: 'Summer' },
-  ],
-  love: [
-    { q: 'love song', ru: 'Песня о любви', he: 'שיר אהבה', en: 'Love song' },
-    { q: 'romantic', ru: 'Романтика', he: 'רומנטי', en: 'Romantic' },
-    { q: 'wedding', ru: 'Свадьба', he: 'חתונה', en: 'Wedding' },
-    { q: 'waltz', ru: 'Вальс', he: 'ואלס', en: 'Waltz' },
-  ],
-};
+/** Что сейчас ищем: песню по названию или музыку категории. */
+type Mode = { type: 'title'; q: string } | { type: 'category'; cat: MusicCategory } | null;
 
 interface Props {
   category: CategoryId;
@@ -60,40 +20,53 @@ interface Props {
 
 export function WebMusicSearch({ category, activeId, onChoose }: Props) {
   const { t, lang } = useI18n();
-  const [q, setQ] = useState('');
+  const [text, setText] = useState('');
+  const [mode, setMode] = useState<Mode>(null);
   const [songs, setSongs] = useState<WebSong[] | null>(null);
   const [done, setDone] = useState(true);
+  const [allCats, setAllCats] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [link, setLink] = useState('');
   const cancel = useRef<() => void>(() => {});
-  const nativeLabel = UI_SCRIPT[lang] ? t.ui.webNative : '';
 
-  /** label — что показать в поле (подсказка на языке интерфейса), query — что искать. */
-  const run = (query: string, label?: string) => {
-    const s = query.trim();
-    if (!s) return;
+  useEffect(() => () => cancel.current(), []);
+
+  const start = (m: NonNullable<Mode>, run: (cb: (s: WebSong[], fin: boolean) => void) => () => void) => {
     cancel.current();
-    setQ(label ?? s);
+    setMode(m);
     setSongs(null);
     setError('');
     setDone(false);
-    cancel.current = searchWebMusic(
-      s,
-      (res, fin) => {
-        setSongs(res);
-        setDone(fin);
-      },
-      UI_SCRIPT[lang]
-    );
+    cancel.current = run((res, fin) => {
+      setSongs(res);
+      setDone(fin);
+    });
   };
 
-  // Ждём песни на языке запроса: они идут первыми, остальные — под разделителем
-  const script = q && q !== NATIVE_QUERY ? scriptOf(q) ?? (nativeLabel === q ? UI_SCRIPT[lang] : null) : null;
-  const nativeCount = songs?.filter((s) => s.native).length ?? 0;
-  const nativeTag = lang === 'ru' ? 'RU' : lang === 'he' ? 'עב' : '';
+  /** Поиск именно по введённому названию. */
+  const findTitle = () => {
+    const q = text.trim();
+    if (q) start({ type: 'title', q }, (cb) => searchByTitle(q, cb));
+  };
 
-  useEffect(() => () => cancel.current(), []);
+  /** Поиск по категории (кнопки ниже поля). */
+  const findCategory = (cat: MusicCategory) => {
+    setText('');
+    start({ type: 'category', cat }, (cb) => searchByCategory(cat.tags, UI_SCRIPT[lang], cb));
+  };
+
+  // Категории: сначала подходящие к поводу открытки; «На русском» — только для ru/he
+  const first = FIRST_FOR[category];
+  const cats = MUSIC_CATEGORIES.filter((c) => c.label[lang]).sort((a, b) => {
+    const ia = a.id === 'native' ? -1 : first.indexOf(a.id) === -1 ? 99 : first.indexOf(a.id);
+    const ib = b.id === 'native' ? -1 : first.indexOf(b.id) === -1 ? 99 : first.indexOf(b.id);
+    return ia - ib;
+  });
+  const shownCats = allCats ? cats : cats.slice(0, 7);
+
+  const nativeTag = lang === 'ru' ? 'RU' : lang === 'he' ? 'עב' : '';
+  const nativeCount = songs?.filter((s) => s.native).length ?? 0;
 
   const pick = async (s: WebSong) => {
     getAudioContext(); // «будим» звук прямо в обработчике нажатия
@@ -129,43 +102,57 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
 
   return (
     <div className="web-music">
+      {/* 1. По названию песни */}
       <form
         className="search-row"
         onSubmit={(e) => {
           e.preventDefault();
-          run(q);
+          findTitle();
         }}
       >
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.ui.webPlaceholder} dir="auto" enterKeyHint="search" />
+        <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t.ui.webPlaceholder} dir="auto" enterKeyHint="search" />
         <button type="submit" className="primary-sm" aria-label={t.ui.webSearch}>
           🔍
         </button>
       </form>
+
+      {/* 2. Или по категории */}
+      <p className="hint">{t.ui.webOrCategory}</p>
       <div className="chips">
-        {nativeLabel && (
-          <button className={`chip ${q === nativeLabel ? 'active' : ''}`} onClick={() => run(NATIVE_QUERY, nativeLabel)}>
-            🎤 {nativeLabel}
-          </button>
-        )}
-        {QUICK[category].map((w) => (
-          <button key={w.q} className={`chip ${q === w.q || q === w[lang] ? 'active' : ''}`} onClick={() => run(w.q, w[lang])}>
-            {w[lang]}
+        {shownCats.map((c) => (
+          <button
+            key={c.id}
+            className={`chip ${mode?.type === 'category' && mode.cat.id === c.id ? 'active' : ''}`}
+            onClick={() => findCategory(c)}
+          >
+            {c.icon} {c.label[lang]}
           </button>
         ))}
+        {cats.length > 7 && (
+          <button className="chip ghost" onClick={() => setAllCats((v) => !v)}>
+            {allCats ? `▲ ${t.ui.webLess}` : `▼ ${t.ui.webMore}`}
+          </button>
+        )}
       </div>
 
+      {mode && (
+        <p className="search-caption">
+          {mode.type === 'title' ? `🔍 ${t.ui.webResultsFor} «${mode.q}»` : `${mode.cat.icon} ${mode.cat.label[lang]}`}
+        </p>
+      )}
       {error && <p className="hint error">{error}</p>}
       {!done && <p className="hint">{t.ui.webLoading}</p>}
-      {done && songs && songs.length === 0 && <p className="hint">{t.ui.webNothing}</p>}
-      {done && script && songs && songs.length > 0 && nativeCount === 0 && <p className="hint notice">{t.ui.webNoNative}</p>}
+      {done && songs?.length === 0 && (
+        <p className="hint notice">{mode?.type === 'title' ? t.ui.webTitleNotFound.replace('{q}', mode.q) : t.ui.webNothing}</p>
+      )}
+      {done && mode?.type === 'category' && UI_SCRIPT[lang] && !!songs?.length && nativeCount === 0 && <p className="hint notice">{t.ui.webNoNative}</p>}
 
       {songs && songs.length > 0 && (
         <div className="song-list">
           {songs.map((s) => {
             const active = activeId === s.id;
             return (
-              <Fragment key={s.id}>
-              <button className={`song ${active ? 'active' : ''}`} onClick={() => pick(s)} disabled={loadingId !== null}>
+              <button key={s.id} className={`song ${active ? 'active' : ''}`} onClick={() => pick(s)} disabled={loadingId !== null}>
                 {s.image ? <img src={s.image} alt="" loading="lazy" /> : <span className="song-cover">{s.source === 'wikimedia' ? '📻' : s.source === 'archive' ? '💿' : '🎵'}</span>}
                 <span className="song-meta">
                   <span className="song-name">
@@ -178,7 +165,6 @@ export function WebMusicSearch({ category, activeId, onChoose }: Props) {
                 </span>
                 <span className="song-dur">{loadingId === s.id ? '⏳' : active ? '🔊' : fmtTime(s.duration)}</span>
               </button>
-              </Fragment>
             );
           })}
         </div>

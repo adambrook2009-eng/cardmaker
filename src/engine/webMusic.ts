@@ -168,9 +168,12 @@ interface IaFile {
   length?: string;
 }
 
-/** lang — искать только релизы на этом языке; без terms — просто популярные релизы на нём. */
-async function searchArchive(q: string, signal: AbortSignal, lang?: Script): Promise<WebSong[]> {
-  const terms = lucene(q);
+/**
+ * lang — искать только релизы на этом языке; без terms — просто популярные релизы на нём.
+ * raw — q уже собран на языке запросов Archive (для категорий: subject:… OR title:…).
+ */
+async function searchArchive(q: string, signal: AbortSignal, lang?: Script, raw = false): Promise<WebSong[]> {
+  const terms = raw ? q : lucene(q);
   if (!terms && !lang) return [];
   const parts = ['collection:netlabels', 'mediatype:audio'];
   if (lang) parts.push(ARCHIVE_LANG[lang]);
@@ -284,44 +287,25 @@ function rank(songs: WebSong[], queries: string[], script: Script | null): WebSo
     .map((x) => x.s);
 }
 
+type OnResults = (songs: WebSong[], done: boolean) => void;
+type Job = (signal: AbortSignal, openverseSignal: AbortSignal) => Promise<WebSong[]>[];
+
 /**
- * Ищем во всех источниках параллельно по исходному запросу и его английскому переводу.
- * Результаты показываются по мере прихода; Openverse ждём не дольше 4 секунд.
+ * Запускает поиск во всех источниках параллельно; результаты показываются по мере прихода.
+ * finalize решает, что показать и в каком порядке. Openverse ждём не дольше 4 секунд.
  */
-export function searchWebMusic(
-  rawQ: string,
-  onResults: (songs: WebSong[], done: boolean) => void,
-  uiScript: Script | null = null
-): () => void {
+function collect(makeJobs: Job, finalize: (all: WebSong[]) => WebSong[], onResults: OnResults): () => void {
   const ctrl = new AbortController();
   const ovCtrl = new AbortController();
   const timer = setTimeout(() => ovCtrl.abort(), 4000);
   ctrl.signal.addEventListener('abort', () => ovCtrl.abort());
-
-  const nativeOnly = rawQ === NATIVE_QUERY;
-  const q = nativeOnly ? '' : rawQ;
-  // Язык результатов: по буквам запроса, а для подсказки «На русском» — по языку интерфейса
-  const script = nativeOnly ? uiScript : scriptOf(q);
-  const tr = q ? translateQuery(q) : null;
-  const queries = [q, tr].filter(Boolean) as string[];
-
-  let all: WebSong[] = [];
-  const jobs: Promise<WebSong[]>[] = [];
-  if (script) {
-    // релизы на языке запроса: сначала по словам, и всегда — просто популярные на этом языке
-    if (q) jobs.push(searchArchive(q, ctrl.signal, script));
-    jobs.push(searchArchive('', ctrl.signal, script));
-  }
-  for (const query of queries) {
-    jobs.push(searchArchive(query, ctrl.signal), searchCommons(query, ctrl.signal));
-  }
-  if (queries.length) jobs.push(searchOpenverse(tr ?? q, ovCtrl.signal));
-
+  const jobs = makeJobs(ctrl.signal, ovCtrl.signal);
+  const all: WebSong[] = [];
+  const seen = new Set<string>();
+  const titles = new Set<string>();
   let pending = jobs.length;
   const settle = (songs: WebSong[]) => {
     if (ctrl.signal.aborted) return;
-    const seen = new Set(all.map((s) => s.id));
-    const titles = new Set(all.map((s) => s.title.toLowerCase()));
     for (const s of songs) {
       const key = s.title.toLowerCase();
       if (seen.has(s.id) || titles.has(key)) continue; // один трек — один раз, даже из разных альбомов
@@ -331,13 +315,90 @@ export function searchWebMusic(
       all.push(s);
     }
     pending--;
-    onResults(rank(all, queries, script).slice(0, 40), pending === 0);
+    onResults(finalize(all).slice(0, 40), pending === 0);
   };
   for (const j of jobs) j.then(settle, () => settle([]));
   return () => {
     clearTimeout(timer);
     ctrl.abort();
   };
+}
+
+/* ---------- Поиск по названию ---------- */
+
+/** Сравниваем без регистра, «ё/е», пунктуации и номеров треков. */
+export const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Насколько название совпадает с запросом. -1 — не совпадает (такую запись не показываем).
+ * 100 — точно та песня (в т. ч. «Исполнитель — Название»), 80 — запрос целиком внутри названия,
+ * 60 — все слова есть в названии, 40 — слова нашлись в названии и имени исполнителя вместе.
+ */
+export function titleScore(s: WebSong, query: string): number {
+  const Q = norm(query);
+  if (!Q) return -1;
+  const t = norm(s.title.replace(/^\s*\d{1,3}\s*[-.)]\s*/, ''));
+  const words = Q.split(' ');
+  if (t === Q || t.endsWith(' ' + Q) || t.startsWith(Q + ' ')) return 100;
+  if (t.includes(Q)) return 80;
+  if (words.every((w) => t.includes(w))) return 60;
+  const ta = `${t} ${norm(s.artist)}`;
+  if (words.every((w) => ta.includes(w))) return 40;
+  return -1;
+}
+
+/**
+ * Ищем ровно ту песню, название которой ввели: без перевода и без «похожих».
+ * В выдаче только записи, где есть все слова запроса; сначала — точные совпадения.
+ */
+export function searchByTitle(query: string, onResults: OnResults): () => void {
+  const q = query.trim();
+  const words = norm(q).split(' ').filter(Boolean);
+  return collect(
+    (signal, ovSignal) => [
+      searchArchive(q, signal),
+      // intitle: — слово должно быть именно в названии файла
+      searchCommons(words.map((w) => `intitle:${w}`).join(' '), signal),
+      searchOpenverse(q, ovSignal),
+    ],
+    (all) =>
+      all
+        .map((s, i) => ({ s, v: titleScore(s, q) - i * 0.001 }))
+        .filter((x) => x.v > 0)
+        .sort((a, b) => b.v - a.v)
+        .map((x) => x.s),
+    onResults
+  );
+}
+
+/* ---------- Поиск по категории ---------- */
+
+/**
+ * Категория = набор английских тегов (в свободных каталогах всё подписано по-английски).
+ * Для русского/иврита дополнительно ищем релизы на этом языке в той же категории и ставим их выше.
+ * tags пустой — «На русском / בעברית»: просто свободные песни на языке интерфейса.
+ */
+export function searchByCategory(tags: string, uiScript: Script | null, onResults: OnResults): () => void {
+  const subject = tags
+    .split(' ')
+    .map((w) => `subject:(${w}) OR title:(${w})`)
+    .join(' OR ');
+  return collect(
+    (signal, ovSignal) => {
+      const jobs: Promise<WebSong[]>[] = [];
+      if (uiScript) jobs.push(searchArchive(tags ? `(${subject})` : '', signal, uiScript, true));
+      if (tags) jobs.push(searchArchive(`(${subject})`, signal, undefined, true), searchCommons(`${tags} music`, signal), searchOpenverse(tags, ovSignal));
+      return jobs;
+    },
+    (all) => rank(all, [tags], uiScript),
+    onResults
+  );
 }
 
 const buffers = new Map<string, Promise<AudioBuffer>>();
