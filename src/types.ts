@@ -5,7 +5,24 @@ export type Lang = 'ru' | 'he' | 'en';
 export type CategoryId = 'congrats' | 'wishes' | 'sympathy' | 'funny' | 'kind' | 'love';
 export type FilterId = 'none' | 'retro' | 'bright' | 'bw' | 'soft';
 export type FrameId = 'none' | 'classic' | 'gold' | 'polaroid' | 'hearts' | 'flowers' | 'sparkles' | 'party';
-export type AnimId = 'none' | 'snow' | 'petals' | 'lights' | 'sparkles' | 'hearts' | 'confetti' | 'bokeh';
+export type AnimId =
+  | 'none'
+  | 'snow'
+  | 'petals'
+  | 'lights'
+  | 'sparkles'
+  | 'hearts'
+  | 'confetti'
+  | 'bokeh'
+  | 'stars'
+  | 'coins'
+  | 'leaves'
+  | 'fireflies'
+  | 'notes'
+  | 'ribbons'
+  | 'emojiRain'
+  | 'rings'
+  | 'rain';
 export type TextAnimId = 'none' | 'pulse' | 'bounce' | 'typewriter' | 'glow';
 export type FontId = 'rubik' | 'amatic' | 'caveat' | 'playfair';
 

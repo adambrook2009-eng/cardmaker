@@ -274,6 +274,14 @@ h1, h3 { margin: 0; }
 .tile.active { border-color: var(--accent); }
 .tile-icon { font-size: 34px; }
 
+/* Анимации — плитки с живым мини-превью */
+.anim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.anim-tile { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 4px 4px 8px; border-radius: 16px; background: var(--bg); border: 3px solid transparent; font-weight: 700; font-size: 13px; }
+.anim-tile.active { border-color: var(--accent); }
+.anim-preview { width: 100%; aspect-ratio: 1; border-radius: 12px; display: block; }
+.anim-none { position: absolute; inset-inline: 0; top: 4px; aspect-ratio: 1; display: grid; place-items: center; font-size: 34px; pointer-events: none; }
+.anim-name { text-align: center; line-height: 1.15; }
+
 input[type='range'] { accent-color: var(--accent); width: 100%; }
 
 /* ---------- Модальные окна и уведомления ---------- */

@@ -19,6 +19,15 @@ export const ANIMATIONS: { id: AnimId; icon: string }[] = [
   { id: 'hearts', icon: '💓' },
   { id: 'confetti', icon: '🎊' },
   { id: 'bokeh', icon: '🫧' },
+  { id: 'stars', icon: '⭐' },
+  { id: 'coins', icon: '🪙' },
+  { id: 'leaves', icon: '🍁' },
+  { id: 'fireflies', icon: '🌟' },
+  { id: 'notes', icon: '🎵' },
+  { id: 'ribbons', icon: '🎀' },
+  { id: 'emojiRain', icon: '🥳' },
+  { id: 'rings', icon: '⭕' },
+  { id: 'rain', icon: '🌧️' },
 ];
 
 export const TEXT_ANIMS: { id: TextAnimId; icon: string }[] = [
