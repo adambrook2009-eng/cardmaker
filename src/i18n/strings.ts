@@ -48,6 +48,9 @@ interface Dict {
     imageReady: string;
     previewTitle: string;
     edit: string;
+    themeSwitch: string;
+    themeBeige: string;
+    themeDark: string;
     uploadPhotos: string;
     addPhotos: string;
     photosLoading: string;
@@ -168,6 +171,9 @@ const ru: Dict = {
     imageReady: 'Открытка готова!',
     previewTitle: 'Предпросмотр',
     edit: 'Изменить',
+    themeSwitch: 'Сменить цвет интерфейса',
+    themeBeige: 'Бежевый',
+    themeDark: 'Тёмный',
     uploadPhotos: 'Мои фото (можно несколько)',
     addPhotos: 'Добавить ещё фото',
     photosLoading: 'Загружаем фото',
@@ -290,6 +296,9 @@ const he: Dict = {
     imageReady: 'הגלויה מוכנה!',
     previewTitle: 'תצוגה מקדימה',
     edit: 'עריכה',
+    themeSwitch: 'החלפת צבע הממשק',
+    themeBeige: 'בז׳',
+    themeDark: 'כהה',
     uploadPhotos: 'התמונות שלי (אפשר כמה)',
     addPhotos: 'הוספת תמונות',
     photosLoading: 'טוענים תמונות',
@@ -411,6 +420,9 @@ const en: Dict = {
     imageReady: 'Your card is ready!',
     previewTitle: 'Preview',
     edit: 'Edit',
+    themeSwitch: 'Change interface color',
+    themeBeige: 'Beige',
+    themeDark: 'Dark',
     uploadPhotos: 'My photos (several allowed)',
     addPhotos: 'Add more photos',
     photosLoading: 'Loading photos',

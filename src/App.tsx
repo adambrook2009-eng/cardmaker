@@ -5,6 +5,7 @@ import type { CategoryId } from './types';
 import { CATEGORIES, getCategory } from './data/categories';
 import { PRESETS } from './data/fx';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { ThemeToggle } from './components/ThemeToggle';
 import { CategoryPicker } from './components/CategoryPicker';
 import { Editor } from './components/Editor';
 
@@ -40,6 +41,7 @@ export default function App() {
           </span>
         )}
         <LanguageSwitcher />
+        <ThemeToggle />
       </header>
 
       <main>{card ? <Editor api={api as CardApi} /> : <CategoryPicker onPick={api.start} />}</main>
