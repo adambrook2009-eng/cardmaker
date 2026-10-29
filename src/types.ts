@@ -10,7 +10,21 @@ export type TextAnimId = 'none' | 'pulse' | 'bounce' | 'typewriter' | 'glow';
 export type FontId = 'rubik' | 'amatic' | 'caveat' | 'playfair';
 
 /* ---- Спецэффекты ---- */
-export type FxId = 'none' | 'fireworks' | 'aurora' | 'lightLeaks' | 'lensFlare' | 'goldDust' | 'magic' | 'starWarp';
+export type FxId =
+  | 'none'
+  | 'fireworks'
+  | 'aurora'
+  | 'lightLeaks'
+  | 'lensFlare'
+  | 'goldDust'
+  | 'magic'
+  | 'starWarp'
+  | 'balloons'
+  | 'bubbles'
+  | 'shootingStars'
+  | 'lanterns'
+  | 'disco'
+  | 'butterflies';
 /** Кино-обработка (WebGL пост-эффекты). */
 export type LookId = 'none' | 'glow' | 'cinema' | 'dream' | 'neon' | 'vintage';
 export type CameraId = 'none' | 'zoomIn' | 'zoomOut' | 'pan' | 'float';
@@ -23,7 +37,9 @@ export type Background =
    * Свои фото — одно или слайд-шоу. Каждое заранее уменьшено (быстро на телефонах).
    * slideSec — сколько секунд показывать каждое фото, transition — как сменяются.
    */
-  | { kind: 'photos'; imgs: HTMLCanvasElement[]; slideSec: number; transition: SlideTransition };
+  | { kind: 'photos'; imgs: HTMLCanvasElement[]; slideSec: number; transition: SlideTransition }
+  /** «Чистый экран»: один цвет или градиент из двух. */
+  | { kind: 'color'; colors: string[] };
 
 export type SlideTransition = 'fade' | 'slide' | 'zoom';
 

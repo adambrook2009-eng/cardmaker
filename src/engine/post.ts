@@ -84,7 +84,9 @@ void main() {
   } else {
     c = texture2D(tex, uv).rgb;
   }
-  c += texture2D(bloom, uv).rgb * bloomAmt;
+  // свечение добавляем в основном к тёмным местам: огни сияют, а светлый фон не «выгорает» в белое
+  float base = dot(c, vec3(0.299, 0.587, 0.114));
+  c += texture2D(bloom, uv).rgb * bloomAmt * (1.0 - 0.8 * smoothstep(0.35, 0.9, base));
   float l = dot(c, vec3(0.299, 0.587, 0.114));
   c = mix(vec3(l), c, sat);
   c = (c - 0.5) * contrast + 0.5;

@@ -71,6 +71,16 @@ const SLIDE_TRANSITION = 0.9;
  */
 export function drawBackground(ctx: CanvasRenderingContext2D, state: Pick<CardState, 'background'>, filter: FilterId, t = 0) {
   const bg = state.background;
+  if (bg.kind === 'color') {
+    // «Чистый экран»: заливка или мягкий диагональный градиент
+    if (bg.colors.length > 1) {
+      const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+      bg.colors.forEach((c, i) => g.addColorStop(i / (bg.colors.length - 1), c));
+      ctx.fillStyle = g;
+    } else ctx.fillStyle = bg.colors[0];
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    return;
+  }
   if (bg.kind === 'photos' && bg.imgs.length > 1) {
     const n = bg.imgs.length;
     const d = bg.slideSec;

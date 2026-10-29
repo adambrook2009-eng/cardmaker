@@ -9,6 +9,12 @@ export const FX_LIST: { id: FxId; icon: string }[] = [
   { id: 'magic', icon: '🪄' },
   { id: 'starWarp', icon: '🚀' },
   { id: 'lightLeaks', icon: '🌅' },
+  { id: 'balloons', icon: '🎈' },
+  { id: 'bubbles', icon: '🫧' },
+  { id: 'shootingStars', icon: '🌠' },
+  { id: 'lanterns', icon: '🏮' },
+  { id: 'disco', icon: '🪩' },
+  { id: 'butterflies', icon: '🦋' },
 ];
 
 export const LOOK_LIST: { id: LookId; icon: string }[] = [
@@ -43,7 +49,20 @@ export const TEXT_STYLES: { id: TextStyleId; icon: string }[] = [
   { id: 'extrude', icon: '🧊' },
 ];
 
-export type PresetId = 'hollywood' | 'salute' | 'magic' | 'aurora' | 'neonParty' | 'gold' | 'retro';
+export type PresetId =
+  | 'hollywood'
+  | 'salute'
+  | 'magic'
+  | 'aurora'
+  | 'neonParty'
+  | 'gold'
+  | 'retro'
+  | 'balloonParty'
+  | 'starryNight'
+  | 'lanternFestival'
+  | 'discoNight'
+  | 'bubblesKids'
+  | 'butterflyGarden';
 
 /** Готовые стили «в один клик»: сразу эффект + обработка + камера + появление + стиль текста. */
 export interface Preset {
@@ -68,4 +87,16 @@ export const PRESETS: Preset[] = [
   { id: 'neonParty', icon: '🪩', fx: 'starWarp', look: 'neon', camera: 'float', intro: 'flash', textStyle: 'neon', animation: 'none', frame: 'none', background: 'night' },
   { id: 'gold', icon: '💛', fx: 'goldDust', look: 'glow', camera: 'zoomIn', intro: 'curtain', textStyle: 'gold', animation: 'none', frame: 'gold' },
   { id: 'retro', icon: '📽️', fx: 'lightLeaks', look: 'vintage', camera: 'pan', intro: 'fade', textStyle: 'plain', animation: 'none', frame: 'polaroid' },
+  { id: 'balloonParty', icon: '🎈', fx: 'balloons', look: 'glow', camera: 'float', intro: 'flash', textStyle: 'extrude', animation: 'confetti', frame: 'none', background: 'sunset' },
+  { id: 'starryNight', icon: '🌠', fx: 'shootingStars', look: 'dream', camera: 'zoomIn', intro: 'fade', textStyle: 'neon', animation: 'none', frame: 'none', background: 'night' },
+  { id: 'lanternFestival', icon: '🏮', fx: 'lanterns', look: 'glow', camera: 'pan', intro: 'fade', textStyle: 'gold', animation: 'none', frame: 'none', background: 'night' },
+  { id: 'discoNight', icon: '🪩', fx: 'disco', look: 'neon', camera: 'float', intro: 'flash', textStyle: 'neon', animation: 'none', frame: 'none', background: 'party' },
+  { id: 'bubblesKids', icon: '🫧', fx: 'bubbles', look: 'dream', camera: 'float', intro: 'iris', textStyle: 'extrude', animation: 'none', frame: 'none', background: 'ocean' },
+  { id: 'butterflyGarden', icon: '🦋', fx: 'butterflies', look: 'none', camera: 'pan', intro: 'fade', textStyle: 'gold', animation: 'petals', frame: 'flowers', background: 'meadow' },
+];
+
+/** Палитра «Чистого экрана». */
+export const CLEAN_COLORS = [
+  '#ffffff', '#f4ebdd', '#fde2e4', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff',
+  '#a0c4ff', '#bdb2ff', '#e11d48', '#7f1d1d', '#14532d', '#1e293b', '#000000',
 ];

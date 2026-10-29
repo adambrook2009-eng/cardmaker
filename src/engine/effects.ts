@@ -418,7 +418,345 @@ function starWarp(): Effect {
   };
 }
 
-const FACTORIES: Record<Exclude<FxId, 'none'>, () => Effect> = { fireworks, aurora, lightLeaks, lensFlare, goldDust, magic, starWarp };
+/* ---------- Воздушные шары ---------- */
+
+function balloons(): Effect {
+  const hues = [350, 25, 48, 140, 200, 270, 320];
+  const make = (y?: number) => ({
+    x: rnd(60, SIZE - 60),
+    y: y ?? SIZE + rnd(80, 400),
+    r: rnd(42, 78),
+    v: rnd(70, 130),
+    hue: hues[Math.floor(Math.random() * hues.length)],
+    ph: rnd(0, 6.28),
+  });
+  const list = Array.from({ length: 13 }, () => make(rnd(0, SIZE + 300)));
+  return {
+    layer: 'back',
+    draw(ctx, t, dtRaw, level) {
+      const dt = Math.min(dtRaw, 0.05);
+      ctx.save();
+      for (const b of list) {
+        b.y -= b.v * (1 + level * 0.8) * dt;
+        const x = b.x + Math.sin(t * 0.9 + b.ph) * 22;
+        if (b.y < -b.r * 4) Object.assign(b, make());
+        const { r, hue } = b;
+        // нитка
+        ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, b.y + r * 1.12);
+        const w = Math.sin(t * 2 + b.ph) * 14;
+        ctx.bezierCurveTo(x + w, b.y + r * 1.7, x - w, b.y + r * 2.3, x + w * 0.5, b.y + r * 3);
+        ctx.stroke();
+        // узелок
+        ctx.fillStyle = `hsl(${hue},80%,35%)`;
+        ctx.beginPath();
+        ctx.moveTo(x, b.y + r * 0.98);
+        ctx.lineTo(x - r * 0.13, b.y + r * 1.14);
+        ctx.lineTo(x + r * 0.13, b.y + r * 1.14);
+        ctx.fill();
+        // шар с бликом
+        const g = ctx.createRadialGradient(x - r * 0.35, b.y - r * 0.4, r * 0.08, x, b.y, r * 1.1);
+        g.addColorStop(0, `hsl(${hue},100%,88%)`);
+        g.addColorStop(0.35, `hsl(${hue},85%,60%)`);
+        g.addColorStop(1, `hsl(${hue},80%,32%)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(x, b.y, r * 0.86, r, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    },
+  };
+}
+
+/* ---------- Мыльные пузыри ---------- */
+
+function bubbles(): Effect {
+  const make = (y?: number) => ({ x: rnd(0, SIZE), y: y ?? SIZE + rnd(40, 300), r: rnd(18, 70), v: rnd(40, 95), ph: rnd(0, 6.28) });
+  const list = Array.from({ length: 30 }, () => make(rnd(0, SIZE)));
+  return {
+    layer: 'front',
+    draw(ctx, t, dtRaw, level) {
+      const dt = Math.min(dtRaw, 0.05);
+      ctx.save();
+      for (const b of list) {
+        b.y -= b.v * dt;
+        b.x += Math.sin(t * 0.8 + b.ph) * 25 * dt;
+        if (b.y < -b.r * 2) Object.assign(b, make());
+        const r = b.r * (1 + level * 0.15 * Math.sin(t * 8 + b.ph));
+        const hue = (t * 40 + b.ph * 60) % 360;
+        // радужная плёнка: почти прозрачная середина, переливы к краю
+        const g = ctx.createRadialGradient(b.x - r * 0.3, b.y - r * 0.3, r * 0.1, b.x, b.y, r);
+        g.addColorStop(0, 'rgba(255,255,255,0.04)');
+        g.addColorStop(0.75, `hsla(${hue},90%,75%,0.12)`);
+        g.addColorStop(0.92, `hsla(${(hue + 120) % 360},90%,78%,0.4)`);
+        g.addColorStop(1, `hsla(${(hue + 220) % 360},90%,85%,0.55)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // блик
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.beginPath();
+        ctx.ellipse(b.x - r * 0.38, b.y - r * 0.42, r * 0.18, r * 0.09, -0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    },
+  };
+}
+
+/* ---------- Падающие звёзды ---------- */
+
+function shootingStars(): Effect {
+  const stars = Array.from({ length: 90 }, () => ({ x: rnd(0, SIZE), y: rnd(0, SIZE * 0.75), s: rnd(1, 2.6), ph: rnd(0, 6.28), sp: rnd(1, 3) }));
+  const meteors: { x: number; y: number; vx: number; vy: number; life: number; max: number; len: number }[] = [];
+  let timer = 0.4;
+  let prev = 0;
+  const spawn = () => {
+    const a = rnd(2.25, 2.6); // вниз-влево
+    const sp = rnd(900, 1300);
+    meteors.push({ x: rnd(SIZE * 0.3, SIZE * 1.1), y: rnd(-60, SIZE * 0.35), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: rnd(0.8, 1.3), len: rnd(180, 320) });
+  };
+  return {
+    layer: 'back',
+    draw(ctx, t, dtRaw, level) {
+      const dt = Math.min(dtRaw, 0.05);
+      timer -= dt;
+      if (timer <= 0 || (level - prev > 0.12 && meteors.length < 4)) {
+        spawn();
+        timer = rnd(0.7, 1.6);
+      }
+      prev = level;
+      ctx.save();
+      ctx.fillStyle = 'rgba(5,5,30,0.3)'; // «ночь» — звёзды видны на любом фоне
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const s of stars) blit(ctx, glow(220, 60, 85), s.x, s.y, s.s * 8, 0.3 + 0.6 * Math.abs(Math.sin(t * s.sp + s.ph)));
+      ctx.lineCap = 'round';
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        m.life += dt;
+        if (m.life > m.max) {
+          meteors.splice(i, 1);
+          continue;
+        }
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+        const k = Math.hypot(m.vx, m.vy);
+        const tx = m.x - (m.vx / k) * m.len;
+        const ty = m.y - (m.vy / k) * m.len;
+        const a = Math.sin((m.life / m.max) * Math.PI); // плавно вспыхивает и гаснет
+        const g = ctx.createLinearGradient(m.x, m.y, tx, ty);
+        g.addColorStop(0, `rgba(255,255,255,${a})`);
+        g.addColorStop(0.3, `rgba(170,200,255,${a * 0.6})`);
+        g.addColorStop(1, 'rgba(120,150,255,0)');
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        blit(ctx, glow(210, 80, 85), m.x, m.y, 60, a);
+      }
+      ctx.restore();
+    },
+  };
+}
+
+/* ---------- Небесные фонарики ---------- */
+
+function lanterns(): Effect {
+  const make = (y?: number) => {
+    const z = rnd(0.35, 1); // глубина: дальние — меньше и медленнее
+    return { x: rnd(40, SIZE - 40), y: y ?? SIZE + rnd(60, 300), z, v: 18 + 40 * z, ph: rnd(0, 6.28) };
+  };
+  const list = Array.from({ length: 18 }, () => make(rnd(0, SIZE)));
+  return {
+    layer: 'back',
+    draw(ctx, t, dtRaw, level) {
+      const dt = Math.min(dtRaw, 0.05);
+      ctx.save();
+      for (const l of [...list].sort((a, b) => a.z - b.z)) {
+        l.y -= l.v * dt;
+        if (l.y < -120) Object.assign(l, make());
+        const x = l.x + Math.sin(t * 0.5 + l.ph) * 18 * l.z;
+        const s = 26 + 50 * l.z;
+        const flick = 0.75 + 0.25 * Math.sin(t * 9 + l.ph) * Math.sin(t * 5.3 + l.ph * 2) + level * 0.3;
+        ctx.globalCompositeOperation = 'lighter';
+        blit(ctx, glow(32, 100, 60), x, l.y + s * 0.2, s * 5, 0.45 * flick * l.z);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 0.6 + 0.4 * l.z;
+        const g = ctx.createLinearGradient(0, l.y - s * 0.5, 0, l.y + s * 0.5);
+        g.addColorStop(0, 'hsl(18,95%,55%)');
+        g.addColorStop(1, 'hsl(45,100%,78%)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(x - s * 0.36, l.y - s * 0.5);
+        ctx.lineTo(x + s * 0.36, l.y - s * 0.5);
+        ctx.lineTo(x + s * 0.26, l.y + s * 0.5);
+        ctx.lineTo(x - s * 0.26, l.y + s * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(255,250,210,${0.8 * flick})`; // огонёк внутри
+        ctx.beginPath();
+        ctx.ellipse(x, l.y + s * 0.38, s * 0.12, s * 0.07, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    },
+  };
+}
+
+/* ---------- Диско ---------- */
+
+function disco(): Effect {
+  const spots = Array.from({ length: 7 }, (_, i) => ({ hue: i * 51, ph: rnd(0, 6.28), sp: rnd(0.4, 0.9) }));
+  return {
+    layer: 'back',
+    draw(ctx, t, _dt, level) {
+      const cx = SIZE / 2;
+      const cy = 110;
+      const R = 70;
+      ctx.save();
+      ctx.fillStyle = 'rgba(10,0,25,0.35)';
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.globalCompositeOperation = 'lighter';
+      // лучи от зеркального шара
+      const n = 10;
+      for (let i = 0; i < n; i++) {
+        const a = Math.PI / 2 + Math.sin(t * 0.6 + i * 1.7) * 1.1;
+        const w = 0.05 + 0.02 * Math.sin(t + i);
+        const hue = (i * 36 + t * 40) % 360;
+        const L = 1400;
+        const g = ctx.createLinearGradient(cx, cy, cx + Math.cos(a) * L, cy + Math.sin(a) * L);
+        g.addColorStop(0, `hsla(${hue},100%,65%,${0.32 + level * 0.35})`);
+        g.addColorStop(1, `hsla(${hue},100%,60%,0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a - w) * L, cy + Math.sin(a - w) * L);
+        ctx.lineTo(cx + Math.cos(a + w) * L, cy + Math.sin(a + w) * L);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // световые пятна, бегающие по «полу»
+      for (const s of spots) {
+        const x = SIZE / 2 + Math.sin(t * s.sp + s.ph) * SIZE * 0.42;
+        const y = SIZE * 0.78 + Math.cos(t * s.sp * 1.3 + s.ph) * 120;
+        blit(ctx, glow((s.hue + t * 50) % 360, 100, 60), x, y, 220, 0.35 + level * 0.3);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      // шар: подвес, тело, мерцающие зеркальные плитки
+      ctx.strokeStyle = 'rgba(200,200,220,0.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, cy - R);
+      ctx.stroke();
+      const body = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, 5, cx, cy, R);
+      body.addColorStop(0, '#f8fafc');
+      body.addColorStop(1, '#475569');
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+      const tile = 14;
+      for (let y = cy - R; y < cy + R; y += tile)
+        for (let x = cx - R; x < cx + R; x += tile) {
+          const k = Math.sin(t * 6 + x * 0.3 + y * 0.17);
+          if (k > 0.6) {
+            ctx.fillStyle = `rgba(255,255,255,${(k - 0.6) * 2.2})`;
+            ctx.fillRect(x + 1, y + 1, tile - 2, tile - 2);
+          }
+        }
+      ctx.restore();
+      ctx.restore();
+    },
+  };
+}
+
+/* ---------- Бабочки ---------- */
+
+function butterflies(): Effect {
+  const list = Array.from({ length: 10 }, () => ({
+    x: rnd(80, SIZE - 80),
+    y: rnd(80, SIZE - 80),
+    dir: rnd(0, 6.28),
+    sp: rnd(70, 130),
+    s: rnd(36, 60),
+    hue: [330, 280, 200, 45, 15, 170][Math.floor(Math.random() * 6)],
+    ph: rnd(0, 6.28),
+  }));
+  const wing = (ctx: CanvasRenderingContext2D, s: number, side: 1 | -1) => {
+    ctx.beginPath(); // верхнее крыло
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(side * s * 1.3, -s * 1.5, side * s * 1.6, -s * 0.1, side * s * 0.1, s * 0.15);
+    ctx.fill();
+    ctx.beginPath(); // нижнее крыло
+    ctx.moveTo(0, s * 0.1);
+    ctx.bezierCurveTo(side * s * 1.1, s * 0.3, side * s * 0.8, s * 1.2, 0, s * 0.5);
+    ctx.fill();
+  };
+  return {
+    layer: 'front',
+    draw(ctx, t, dtRaw, level) {
+      const dt = Math.min(dtRaw, 0.05);
+      ctx.save();
+      for (const b of list) {
+        b.dir += Math.sin(t * 0.7 + b.ph) * dt * 1.6;
+        b.x += Math.cos(b.dir) * b.sp * dt;
+        b.y += Math.sin(b.dir) * b.sp * dt;
+        // держимся в кадре: у края разворачиваемся
+        if (b.x < 40 || b.x > SIZE - 40 || b.y < 40 || b.y > SIZE - 40) b.dir = Math.atan2(SIZE / 2 - b.y, SIZE / 2 - b.x) + rnd(-0.5, 0.5);
+        const flap = 0.2 + 0.8 * Math.abs(Math.sin(t * (9 + level * 6) + b.ph));
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.dir + Math.PI / 2);
+        const g = ctx.createLinearGradient(-b.s, -b.s, b.s, b.s);
+        g.addColorStop(0, `hsl(${b.hue},90%,65%)`);
+        g.addColorStop(1, `hsl(${(b.hue + 40) % 360},90%,55%)`);
+        ctx.fillStyle = g;
+        ctx.globalAlpha = 0.92;
+        ctx.save();
+        ctx.scale(flap, 1); // взмах крыльев
+        wing(ctx, b.s, -1);
+        wing(ctx, b.s, 1);
+        ctx.restore();
+        ctx.fillStyle = '#2b1a12';
+        ctx.beginPath();
+        ctx.ellipse(0, b.s * 0.15, b.s * 0.08, b.s * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    },
+  };
+}
+
+const FACTORIES: Record<Exclude<FxId, 'none'>, () => Effect> = {
+  fireworks,
+  aurora,
+  lightLeaks,
+  lensFlare,
+  goldDust,
+  magic,
+  starWarp,
+  balloons,
+  bubbles,
+  shootingStars,
+  lanterns,
+  disco,
+  butterflies,
+};
 
 export function createEffect(id: FxId): Effect | null {
   return id === 'none' ? null : FACTORIES[id]();

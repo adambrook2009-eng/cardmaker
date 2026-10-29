@@ -184,6 +184,23 @@ h1, h3 { margin: 0; }
 .preset-neonParty::before { background: radial-gradient(circle at 50% 50%, #a855f7 0, transparent 50%), linear-gradient(135deg, #0f0326, #1e1b4b); box-shadow: inset 0 0 20px #ec4899; }
 .preset-gold::before { background: linear-gradient(135deg, #5a0913, #a3192d 40%, #e8b64c 100%); }
 .preset-retro::before { background: radial-gradient(circle at 10% 10%, #fb923c 0, transparent 45%), linear-gradient(135deg, #3f2a1d, #8b6b4a); filter: sepia(0.4); }
+.preset-balloonParty::before { background: radial-gradient(circle at 25% 30%, #f43f5e 0, transparent 22%), radial-gradient(circle at 70% 45%, #facc15 0, transparent 20%), linear-gradient(180deg, #38bdf8, #bae6fd); }
+.preset-starryNight::before { background: linear-gradient(200deg, transparent 40%, rgba(255, 255, 255, 0.5) 46%, transparent 52%), linear-gradient(180deg, #020617, #312e81); }
+.preset-lanternFestival::before { background: radial-gradient(circle at 30% 60%, #fb923c 0, transparent 18%), radial-gradient(circle at 70% 35%, #fbbf24 0, transparent 14%), linear-gradient(180deg, #0b1026, #3b1d4a); }
+.preset-discoNight::before { background: conic-gradient(from 200deg at 50% 0%, #f43f5e, #a855f7, #38bdf8, #22c55e, #f43f5e); opacity: 0.85; }
+.preset-bubblesKids::before { background: radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.8) 0, transparent 16%), radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.6) 0, transparent 20%), linear-gradient(135deg, #fbcfe8, #bfdbfe); }
+.preset-butterflyGarden::before { background: radial-gradient(circle at 65% 35%, #f0abfc 0, transparent 22%), linear-gradient(180deg, #7dd3fc, #4ade80); }
+
+/* ---------- Чистый экран ---------- */
+.clean-box { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px; background: var(--bg); border: 2px solid var(--border); }
+.clean-box.active { border-color: var(--accent); }
+.clean-apply { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; text-align: start; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08), var(--shadow); }
+.clean-apply b { display: block; font-size: 16px; }
+.clean-apply small { opacity: 0.75; }
+.clean-icon { font-size: 26px; }
+.swatch.custom { position: relative; display: grid; place-items: center; font-size: 16px; cursor: pointer; overflow: hidden; }
+.swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; border: 1px solid rgba(0, 0, 0, 0.2); }
 .text-style-gold { color: #b8860b; }
 .text-style-neon { text-shadow: 0 0 8px var(--accent-2); }
 .send-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
