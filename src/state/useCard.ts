@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Background, CardState, CardText, CategoryId, Lang, Selection, Sticker } from '../types';
+import { NEUTRAL_ADJUST, type Background, type CardState, type CardText, type CategoryId, type Lang, type Selection, type Sticker } from '../types';
 
 export type PhotosBackground = Extract<Background, { kind: 'photos' }>;
 import { getCategory } from '../data/categories';
@@ -13,6 +13,7 @@ export function createCard(category: CategoryId, lang: Lang): CardState {
     category,
     background: { kind: 'builtin', id: d.background },
     filter: 'none',
+    adjust: { ...NEUTRAL_ADJUST },
     frame: d.frame,
     animation: d.animation,
     music: { kind: 'builtin', id: d.music },

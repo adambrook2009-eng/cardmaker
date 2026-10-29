@@ -3,7 +3,41 @@ import type { TrackId } from './data/music';
 export type Lang = 'ru' | 'he' | 'en';
 
 export type CategoryId = 'congrats' | 'wishes' | 'sympathy' | 'funny' | 'kind' | 'love';
-export type FilterId = 'none' | 'retro' | 'bright' | 'bw' | 'soft';
+export type FilterId =
+  | 'none'
+  | 'bright'
+  | 'warm'
+  | 'cool'
+  | 'sunset'
+  | 'golden'
+  | 'retro'
+  | 'film'
+  | 'fade'
+  | 'pastel'
+  | 'soft'
+  | 'dramatic'
+  | 'lomo'
+  | 'bw'
+  | 'noir'
+  | 'sepia'
+  | 'arctic'
+  | 'cyber'
+  | 'duoPink'
+  | 'duoBlue'
+  | 'invert';
+
+/** «Игра с цветом»: ручные настройки поверх любого фильтра. 100 / 0 — без изменений. */
+export interface ColorAdjust {
+  brightness: number; // 50…150 %
+  contrast: number; // 50…150 %
+  saturate: number; // 0…200 %
+  hue: number; // -180…180 °
+  warmth: number; // -100…100: холоднее ↔ теплее
+  fade: number; // 0…100: «матовое» выцветание
+  vignette: number; // 0…100: затемнение по краям
+}
+
+export const NEUTRAL_ADJUST: ColorAdjust = { brightness: 100, contrast: 100, saturate: 100, hue: 0, warmth: 0, fade: 0, vignette: 0 };
 export type FrameId = 'none' | 'classic' | 'gold' | 'polaroid' | 'hearts' | 'flowers' | 'sparkles' | 'party';
 export type AnimId =
   | 'none'
@@ -98,6 +132,7 @@ export interface CardState {
   category: CategoryId;
   background: Background;
   filter: FilterId;
+  adjust: ColorAdjust;
   frame: FrameId;
   animation: AnimId;
   music: MusicChoice;

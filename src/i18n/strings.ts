@@ -1,4 +1,4 @@
-import type { AnimId, CameraId, CategoryId, FilterId, FrameId, FxId, IntroId, Lang, LookId, SlideTransition, TextAnimId, TextStyleId } from '../types';
+import type { AnimId, CameraId, CategoryId, ColorAdjust, FilterId, FrameId, FxId, IntroId, Lang, LookId, SlideTransition, TextAnimId, TextStyleId } from '../types';
 import type { TrackId } from '../data/music';
 import type { PresetId } from '../data/fx';
 
@@ -16,6 +16,7 @@ interface Dict {
   textStyles: Record<TextStyleId, string>;
   presets: Record<PresetId, { name: string; hint: string }>;
   filters: Record<FilterId, string>;
+  adjust: Record<keyof ColorAdjust, string>;
   frames: Record<FrameId, string>;
   anims: Record<AnimId, string>;
   textAnims: Record<TextAnimId, string>;
@@ -49,6 +50,10 @@ interface Dict {
     previewTitle: string;
     edit: string;
     liveBg: string;
+    colorPlay: string;
+    filtersTitle: string;
+    surprise: string;
+    resetColors: string;
     themeSwitch: string;
     themeBeige: string;
     themeDark: string;
@@ -151,7 +156,13 @@ const ru: Dict = {
     butterflyGarden: { name: 'Сад бабочек', hint: 'Бабочки, цветы, лепестки' },
   },
   tracks: { birthday: 'С днём рождения', jingle: 'Jingle Bells', twinkle: 'Звёздочка', romantic: 'Романтика', calm: 'Спокойная', funny: 'Весёлая', party: 'Вечеринка' },
-  filters: { none: 'Без фильтра', retro: 'Ретро', bright: 'Яркий', bw: 'Ч/Б', soft: 'Мягкий фокус' },
+  filters: {
+    none: 'Без фильтра', bright: 'Яркий', warm: 'Тёплый', cool: 'Холодный', sunset: 'Закат', golden: 'Золотой час',
+    retro: 'Ретро', film: 'Плёнка', fade: 'Матовый', pastel: 'Пастель', soft: 'Мягкий фокус', dramatic: 'Драма',
+    lomo: 'Ломо', bw: 'Ч/Б', noir: 'Нуар', sepia: 'Сепия', arctic: 'Арктика', cyber: 'Кибер',
+    duoPink: 'Розовый дуотон', duoBlue: 'Синий дуотон', invert: 'Негатив',
+  },
+  adjust: { brightness: 'Яркость', contrast: 'Контраст', saturate: 'Насыщенность', hue: 'Оттенок', warmth: 'Температура', fade: 'Выцветание', vignette: 'Виньетка' },
   frames: { none: 'Без рамки', classic: 'Классика', gold: 'Золото', polaroid: 'Полароид', hearts: 'Сердечки', flowers: 'Цветы', sparkles: 'Блёстки', party: 'Праздник' },
   anims: { none: 'Без анимации', snow: 'Снежинки', petals: 'Лепестки', lights: 'Огоньки', sparkles: 'Мерцание', hearts: 'Сердечки', confetti: 'Конфетти', bokeh: 'Мягкий свет', stars: 'Звёзды', coins: 'Монеты', leaves: 'Листопад', fireflies: 'Светлячки', notes: 'Ноты', ribbons: 'Серпантин', emojiRain: 'Смайлики', rings: 'Неоновые кольца', rain: 'Дождь' },
   textAnims: { none: 'Статичный', pulse: 'Пульс', bounce: 'Прыжки', typewriter: 'Печать', glow: 'Сияние' },
@@ -185,6 +196,10 @@ const ru: Dict = {
     previewTitle: 'Предпросмотр',
     edit: 'Изменить',
     liveBg: 'живой фон: двигается в видео',
+    colorPlay: 'Игра с цветом',
+    filtersTitle: 'Фильтры',
+    surprise: 'Случайно',
+    resetColors: 'Сбросить',
     themeSwitch: 'Сменить цвет интерфейса',
     themeBeige: 'Светлый',
     themeDark: 'Тёмный',
@@ -289,7 +304,13 @@ const he: Dict = {
     butterflyGarden: { name: 'גן פרפרים', hint: 'פרפרים, פרחים, עלי כותרת' },
   },
   tracks: { birthday: 'יום הולדת שמח', jingle: 'ג׳ינגל בלס', twinkle: 'כוכב קטן', romantic: 'רומנטי', calm: 'רגוע', funny: 'שמח ומצחיק', party: 'מסיבה' },
-  filters: { none: 'ללא', retro: 'רטרו', bright: 'בהיר', bw: 'שחור־לבן', soft: 'פוקוס רך' },
+  filters: {
+    none: 'ללא', bright: 'עז', warm: 'חם', cool: 'קר', sunset: 'שקיעה', golden: 'שעת זהב',
+    retro: 'רטרו', film: 'פילם', fade: 'מט', pastel: 'פסטל', soft: 'פוקוס רך', dramatic: 'דרמה',
+    lomo: 'לומו', bw: 'שחור־לבן', noir: 'נואר', sepia: 'ספיה', arctic: 'ארקטי', cyber: 'סייבר',
+    duoPink: 'דואוטון ורוד', duoBlue: 'דואוטון כחול', invert: 'נגטיב',
+  },
+  adjust: { brightness: 'בהירות', contrast: 'ניגודיות', saturate: 'רוויה', hue: 'גוון', warmth: 'טמפרטורה', fade: 'דהייה', vignette: 'וינייטה' },
   frames: { none: 'ללא', classic: 'קלאסי', gold: 'זהב', polaroid: 'פולרואיד', hearts: 'לבבות', flowers: 'פרחים', sparkles: 'נצנצים', party: 'חגיגה' },
   anims: { none: 'ללא', snow: 'פתיתי שלג', petals: 'עלי כותרת', lights: 'אורות', sparkles: 'נצנוץ', hearts: 'לבבות', confetti: 'קונפטי', bokeh: 'אור רך', stars: 'כוכבים', coins: 'מטבעות', leaves: 'שלכת', fireflies: 'גחליליות', notes: 'תווים', ribbons: 'סרפנטין', emojiRain: 'סמיילים', rings: 'טבעות ניאון', rain: 'גשם' },
   textAnims: { none: 'סטטי', pulse: 'פעימה', bounce: 'קפיצה', typewriter: 'הקלדה', glow: 'זוהר' },
@@ -323,6 +344,10 @@ const he: Dict = {
     previewTitle: 'תצוגה מקדימה',
     edit: 'עריכה',
     liveBg: 'רקע חי: זז בסרטון',
+    colorPlay: 'משחק בצבעים',
+    filtersTitle: 'פילטרים',
+    surprise: 'אקראי',
+    resetColors: 'איפוס',
     themeSwitch: 'החלפת צבע הממשק',
     themeBeige: 'בהיר',
     themeDark: 'כהה',
@@ -426,7 +451,13 @@ const en: Dict = {
     butterflyGarden: { name: 'Butterfly garden', hint: 'Butterflies, flowers, petals' },
   },
   tracks: { birthday: 'Happy Birthday', jingle: 'Jingle Bells', twinkle: 'Twinkle Star', romantic: 'Romantic', calm: 'Calm', funny: 'Funny', party: 'Party' },
-  filters: { none: 'Original', retro: 'Retro', bright: 'Vivid', bw: 'B&W', soft: 'Soft focus' },
+  filters: {
+    none: 'Original', bright: 'Vivid', warm: 'Warm', cool: 'Cool', sunset: 'Sunset', golden: 'Golden hour',
+    retro: 'Retro', film: 'Film', fade: 'Matte', pastel: 'Pastel', soft: 'Soft focus', dramatic: 'Drama',
+    lomo: 'Lomo', bw: 'B&W', noir: 'Noir', sepia: 'Sepia', arctic: 'Arctic', cyber: 'Cyber',
+    duoPink: 'Pink duotone', duoBlue: 'Blue duotone', invert: 'Negative',
+  },
+  adjust: { brightness: 'Brightness', contrast: 'Contrast', saturate: 'Saturation', hue: 'Hue', warmth: 'Temperature', fade: 'Fade', vignette: 'Vignette' },
   frames: { none: 'No frame', classic: 'Classic', gold: 'Gold', polaroid: 'Polaroid', hearts: 'Hearts', flowers: 'Flowers', sparkles: 'Sparkles', party: 'Party' },
   anims: { none: 'None', snow: 'Snowflakes', petals: 'Petals', lights: 'Fairy lights', sparkles: 'Twinkle', hearts: 'Hearts', confetti: 'Confetti', bokeh: 'Soft light', stars: 'Stars', coins: 'Coins', leaves: 'Falling leaves', fireflies: 'Fireflies', notes: 'Music notes', ribbons: 'Streamers', emojiRain: 'Emoji rain', rings: 'Neon rings', rain: 'Rain' },
   textAnims: { none: 'Static', pulse: 'Pulse', bounce: 'Bounce', typewriter: 'Typewriter', glow: 'Glow' },
@@ -460,6 +491,10 @@ const en: Dict = {
     previewTitle: 'Preview',
     edit: 'Edit',
     liveBg: 'live background: moves in the video',
+    colorPlay: 'Play with colors',
+    filtersTitle: 'Filters',
+    surprise: 'Surprise me',
+    resetColors: 'Reset',
     themeSwitch: 'Change interface color',
     themeBeige: 'Light',
     themeDark: 'Dark',

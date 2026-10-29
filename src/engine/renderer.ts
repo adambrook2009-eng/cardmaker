@@ -1,4 +1,4 @@
-import type { CameraId, CardState, FilterId, IntroId, Selection } from '../types';
+import type { CameraId, CardState, ColorAdjust, FilterId, IntroId, Selection } from '../types';
 import { FILTERS, FONTS } from '../data/options';
 import { getBackgroundCanvas, getLiveBackgroundFrame, isLiveBackground } from './backgrounds';
 import { getFrameCanvas } from './frames';
@@ -43,15 +43,65 @@ function drawCover(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement) {
   ctx.drawImage(src, (SIZE - src.width * k) / 2, (SIZE - src.height * k) / 2, src.width * k, src.height * k);
 }
 
+type BgState = Pick<CardState, 'background'> & Partial<Pick<CardState, 'adjust'>>;
+
+/** CSS-цепочка: фильтр + ручные настройки цвета (только те, что отличаются от нейтральных). */
+function filterCss(filter: FilterId, adj?: ColorAdjust): string {
+  const base = FILTERS.find((f) => f.id === filter)?.css ?? 'none';
+  const parts = base === 'none' ? [] : [base];
+  if (adj) {
+    if (adj.brightness !== 100) parts.push(`brightness(${adj.brightness / 100})`);
+    if (adj.contrast !== 100) parts.push(`contrast(${adj.contrast / 100})`);
+    if (adj.saturate !== 100) parts.push(`saturate(${adj.saturate / 100})`);
+    if (adj.hue !== 0) parts.push(`hue-rotate(${adj.hue}deg)`);
+  }
+  return parts.join(' ') || 'none';
+}
+
+/** Цветные наложения фильтра + температура, выцветание и виньетка из «Игры с цветом». */
+function drawOverlays(ctx: CanvasRenderingContext2D, filter: FilterId, adj?: ColorAdjust) {
+  const def = FILTERS.find((f) => f.id === filter);
+  ctx.save();
+  for (const tint of def?.tints ?? []) {
+    ctx.globalCompositeOperation = tint.mode;
+    ctx.globalAlpha = tint.alpha;
+    ctx.fillStyle = tint.color;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+  if (adj && adj.warmth !== 0) {
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.globalAlpha = (Math.abs(adj.warmth) / 100) * 0.6;
+    ctx.fillStyle = adj.warmth > 0 ? '#ff8a00' : '#0077ff';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+  if (adj && adj.fade > 0) {
+    // «матовость»: тёмные места становятся серовато-светлыми, как на выцветшем снимке
+    const v = Math.round((adj.fade / 100) * 110);
+    ctx.globalCompositeOperation = 'lighten';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = `rgb(${v + 8},${v + 4},${v})`;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+  ctx.restore();
+  const vig = Math.min(1, (def?.vignette ?? 0) + (adj?.vignette ?? 0) / 100);
+  if (vig > 0) {
+    const g = ctx.createRadialGradient(SIZE / 2, SIZE / 2, SIZE * 0.3, SIZE / 2, SIZE / 2, SIZE * 0.75);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `rgba(20,10,0,${vig * 0.9})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+}
+
 /** Один кадр фона с фильтром; scale > 1 — приближение от центра (для «зума»). */
-function drawLayer(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, filter: FilterId, scale = 1) {
+function drawLayer(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, filter: FilterId, scale = 1, adj?: ColorAdjust) {
   ctx.save();
   if (scale !== 1) {
     ctx.translate(SIZE / 2, SIZE / 2);
     ctx.scale(scale, scale);
     ctx.translate(-SIZE / 2, -SIZE / 2);
   }
-  if (supportsFilter) ctx.filter = FILTERS.find((f) => f.id === filter)!.css;
+  if (supportsFilter) ctx.filter = filterCss(filter, adj);
   drawCover(ctx, src);
   if (filter === 'soft' && supportsFilter) {
     // мягкий фокус: размытая копия поверх оригинала
@@ -69,16 +119,21 @@ const SLIDE_TRANSITION = 0.9;
  * Фон в момент t. Несколько своих фото — слайд-шоу: каждое показывается slideSec секунд,
  * последние 0,9 с плавно сменяется следующим (наплыв, сдвиг или наплыв с медленным приближением).
  */
-export function drawBackground(ctx: CanvasRenderingContext2D, state: Pick<CardState, 'background'>, filter: FilterId, t = 0) {
+export function drawBackground(ctx: CanvasRenderingContext2D, state: BgState, filter: FilterId, t = 0) {
   const bg = state.background;
+  const adj = state.adjust;
   if (bg.kind === 'color') {
-    // «Чистый экран»: заливка или мягкий диагональный градиент
+    // «Чистый экран»: заливка или мягкий диагональный градиент — тоже с фильтром и игрой цвета
+    ctx.save();
+    if (supportsFilter) ctx.filter = filterCss(filter, adj);
     if (bg.colors.length > 1) {
       const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
       bg.colors.forEach((c, i) => g.addColorStop(i / (bg.colors.length - 1), c));
       ctx.fillStyle = g;
     } else ctx.fillStyle = bg.colors[0];
     ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.restore();
+    drawOverlays(ctx, filter, adj);
     return;
   }
   if (bg.kind === 'photos' && bg.imgs.length > 1) {
@@ -95,32 +150,26 @@ export function drawBackground(ctx: CanvasRenderingContext2D, state: Pick<CardSt
     if (bg.transition === 'slide' && k > 0) {
       ctx.save();
       ctx.translate(-k * SIZE, 0);
-      drawLayer(ctx, cur, filter);
+      drawLayer(ctx, cur, filter, 1, adj);
       ctx.translate(SIZE, 0);
-      drawLayer(ctx, next, filter);
+      drawLayer(ctx, next, filter, 1, adj);
       ctx.restore();
     } else {
-      drawLayer(ctx, cur, filter, zoom(local));
+      drawLayer(ctx, cur, filter, zoom(local), adj);
       if (k > 0) {
         ctx.save();
         ctx.globalAlpha = k;
-        drawLayer(ctx, next, filter, zoom(0));
+        drawLayer(ctx, next, filter, zoom(0), adj);
         ctx.restore();
       }
     }
   } else {
     const src =
       bg.kind === 'photos' ? bg.imgs[0] : isLiveBackground(bg.id) ? getLiveBackgroundFrame(bg.id, t) : getBackgroundCanvas(bg.id);
-    drawLayer(ctx, src, filter);
+    drawLayer(ctx, src, filter, 1, adj);
   }
 
-  if (filter === 'retro') {
-    const g = ctx.createRadialGradient(SIZE / 2, SIZE / 2, SIZE * 0.3, SIZE / 2, SIZE / 2, SIZE * 0.75);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(40,20,0,0.55)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, SIZE, SIZE);
-  }
+  drawOverlays(ctx, filter, adj);
 }
 
 /** Движение «камеры» по фону. Оверлеи остаются на месте — получается параллакс. */

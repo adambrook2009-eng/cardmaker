@@ -274,6 +274,17 @@ h1, h3 { margin: 0; }
 .tile.active { border-color: var(--accent); }
 .tile-icon { font-size: 34px; }
 
+/* Игра с цветом */
+.adjust-box { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 16px; background: var(--bg); border: 2px solid var(--border); }
+.adjust-row { display: grid; grid-template-columns: minmax(110px, auto) 1fr 52px; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; }
+.adjust-val { text-align: end; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+.adjust-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.adjust-actions .chip:disabled { opacity: 0.4; }
+.hue-range { accent-color: #ec4899; background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); border-radius: 999px; height: 6px; -webkit-appearance: none; appearance: none; }
+.warmth-range { background: linear-gradient(90deg, #3b82f6, #e5e7eb, #f97316); border-radius: 999px; height: 6px; -webkit-appearance: none; appearance: none; }
+.hue-range::-webkit-slider-thumb, .warmth-range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+@media (max-width: 480px) { .adjust-row { grid-template-columns: 1fr 46px; } .adjust-row input { grid-column: 1 / -1; grid-row: 2; } }
+
 /* Анимации — плитки с живым мини-превью */
 .anim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
 .anim-tile { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 4px 4px 8px; border-radius: 16px; background: var(--bg); border: 3px solid transparent; font-weight: 700; font-size: 13px; }
