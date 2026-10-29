@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { CardApi, PhotosBackground } from '../../state/useCard';
 import type { SlideTransition } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
-import { BACKGROUND_IDS } from '../../engine/backgrounds';
+import { BACKGROUND_IDS, isLiveBackground } from '../../engine/backgrounds';
 import { drawBackground } from '../../engine/renderer';
 import { Thumb } from '../Thumb';
 
@@ -165,6 +165,7 @@ export function BackgroundPanel({ api }: { api: CardApi }) {
       )}
 
       <h3>{t.ui.builtin}</h3>
+      <p className="hint">▶ — {t.ui.liveBg}</p>
       <div className="thumb-grid">
         {BACKGROUND_IDS.map((id) => (
           <button
@@ -172,7 +173,12 @@ export function BackgroundPanel({ api }: { api: CardApi }) {
             className={`thumb-btn ${bg.kind === 'builtin' && bg.id === id ? 'active' : ''}`}
             onClick={() => api.patch({ background: { kind: 'builtin', id } })}
           >
-            <Thumb draw={(ctx) => drawBackground(ctx, { background: { kind: 'builtin', id } }, 'none')} deps={[id]} />
+            <Thumb draw={(ctx) => drawBackground(ctx, { background: { kind: 'builtin', id } }, 'none', 1)} deps={[id]} />
+            {isLiveBackground(id) && (
+              <span className="live-badge" title={t.ui.liveBg}>
+                ▶
+              </span>
+            )}
           </button>
         ))}
       </div>

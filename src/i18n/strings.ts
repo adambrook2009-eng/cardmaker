@@ -48,6 +48,7 @@ interface Dict {
     imageReady: string;
     previewTitle: string;
     edit: string;
+    liveBg: string;
     themeSwitch: string;
     themeBeige: string;
     themeDark: string;
@@ -183,6 +184,7 @@ const ru: Dict = {
     imageReady: 'Открытка готова!',
     previewTitle: 'Предпросмотр',
     edit: 'Изменить',
+    liveBg: 'живой фон: двигается в видео',
     themeSwitch: 'Сменить цвет интерфейса',
     themeBeige: 'Светлый',
     themeDark: 'Тёмный',
@@ -320,6 +322,7 @@ const he: Dict = {
     imageReady: 'הגלויה מוכנה!',
     previewTitle: 'תצוגה מקדימה',
     edit: 'עריכה',
+    liveBg: 'רקע חי: זז בסרטון',
     themeSwitch: 'החלפת צבע הממשק',
     themeBeige: 'בהיר',
     themeDark: 'כהה',
@@ -456,6 +459,7 @@ const en: Dict = {
     imageReady: 'Your card is ready!',
     previewTitle: 'Preview',
     edit: 'Edit',
+    liveBg: 'live background: moves in the video',
     themeSwitch: 'Change interface color',
     themeBeige: 'Light',
     themeDark: 'Dark',

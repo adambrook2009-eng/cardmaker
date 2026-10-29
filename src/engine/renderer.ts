@@ -1,6 +1,6 @@
 import type { CameraId, CardState, FilterId, IntroId, Selection } from '../types';
 import { FILTERS, FONTS } from '../data/options';
-import { getBackgroundCanvas } from './backgrounds';
+import { getBackgroundCanvas, getLiveBackgroundFrame, isLiveBackground } from './backgrounds';
 import { getFrameCanvas } from './frames';
 import type { Animation } from './animations';
 import type { Effect } from './effects';
@@ -109,7 +109,9 @@ export function drawBackground(ctx: CanvasRenderingContext2D, state: Pick<CardSt
       }
     }
   } else {
-    drawLayer(ctx, bg.kind === 'photos' ? bg.imgs[0] : getBackgroundCanvas(bg.id), filter);
+    const src =
+      bg.kind === 'photos' ? bg.imgs[0] : isLiveBackground(bg.id) ? getLiveBackgroundFrame(bg.id, t) : getBackgroundCanvas(bg.id);
+    drawLayer(ctx, src, filter);
   }
 
   if (filter === 'retro') {

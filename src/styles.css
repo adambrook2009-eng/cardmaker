@@ -230,6 +230,8 @@ h1, h3 { margin: 0; }
 .thumb-btn .thumb { width: 100%; aspect-ratio: 1; border-radius: 10px; display: block; }
 .thumb-btn.labeled span { font-size: 12px; font-weight: 700; }
 .thumb-btn.active { border-color: var(--accent); }
+.thumb-btn { position: relative; }
+.live-badge { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: #fff; background: rgba(0, 0, 0, 0.55); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7); }
 
 /* ---------- Свои фото / слайд-шоу ---------- */
 .photo-box { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px; background: var(--bg); border: 2px solid var(--accent); }
