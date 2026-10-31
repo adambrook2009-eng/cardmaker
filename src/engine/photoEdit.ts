@@ -38,6 +38,8 @@ export interface PhotoCommand {
   merge?: MergeMode;
   /** Замена фона: человек с фото person на фоне фото bg. */
   swap?: { person: number; bg: number };
+  /** Фон по описанию: «1 фон закат над морем», «размой фон на 2», «фото 3 на белом фоне». */
+  bgDesc?: string;
   amount: number; // «чуть» 0.5 … «сильно» 1.8
 }
 
@@ -101,6 +103,37 @@ function parseSwap(t: string, nums: number[]): PhotoCommand['swap'] {
   const bgNum = after(/(на фоне|на фон|on the background of|on background|on the background|onto|על רקע|לרקע)/);
   if (bgNum === a || bgNum === b) return { person: bgNum === a ? b : a, bg: bgNum };
   return { person: a, bg: b };
+}
+
+/** Служебные слова команды — всё остальное и есть описание нужного фона. */
+const BG_STOP = new RegExp(
+  '^(' +
+    [
+      // русский
+      'фон\\S*', 'постав\\S*', 'замен\\S*', 'смен\\S*', 'помен\\S*', 'измен\\S*', 'сдела\\S*', 'верн\\S*', 'перенес\\S*', 'перемест\\S*',
+      'добав\\S*', 'хочу', 'давай', 'можно', 'пожалуйста', 'прошу', 'вместо', 'номер', 'человек\\S*', 'люд\\S*', 'сзади', 'позади',
+      'на', 'в', 'во', 'с', 'со', 'для', 'у', 'и', 'к', 'по', 'из', 'от', 'за', 'как', 'чтобы', 'чтоб', 'был\\S*', 'будет', 'стал\\S*',
+      'это\\S*', 'эт[аиоу]', 'мне', 'мо[йеёю]\\S*', 'нов\\S*', 'друг\\S*', 'вид', 'видом', 'него', 'нее', 'ним', 'ней', 'их', 'там', 'пусть',
+      // английский
+      'put', 'set', 'make', 'change', 'replace', 'swap', 'use', 'add', 'give', 'the', 'a', 'an', 'with', 'to', 'of', 'on', 'in', 'for',
+      'background', 'backdrop', 'bg', 'please', 'into', 'new', 'behind', 'me', 'my', 'it', 'its', 'person', 'people', 'number', 'instead',
+      'onto', 'be', 'let', 'and', 'want', 'i',
+      // иврит
+      'שים', 'תשים', 'שימו', 'החלף', 'תחליף', 'החליפו', 'שנה', 'תשנה', 'שנו', 'עשה', 'תעשה', 'עשו', 'הוסף', 'תוסיף', '\\S*רקע\\S*',
+      'של', 'עם', 'את', 'על', 'אל', 'במקום', 'מספר', 'אדם', 'האדם', 'אנשים', 'בבקשה', 'חדש', 'אחר', 'לי', 'שלי', 'שיהיה', 'רוצה', 'אני',
+      '[בלהומש]',
+    ].join('|') +
+    ')$'
+);
+
+/** «поставь на фото 1 фон закат над морем» → «закат над морем». */
+function bgDescription(t: string): string {
+  return t
+    .replace(new RegExp(PHOTO_WORD, 'g'), ' ')
+    .replace(/[\d.,;:!?«»"“”'()\-–—]+/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w && !BG_STOP.test(w))
+    .join(' ');
 }
 
 /* ---------- Понимание команд (ru / he / en) ---------- */
@@ -174,10 +207,14 @@ export function parseCommands(raw: string, count: number, selected: number[] = [
       const amount = /(чуть|немного|слегка|a bit|slightly|little|קצת)/.test(t) ? 0.5 : /(сильно|очень|намного|much|very|strong|מאוד|הרבה)/.test(t) ? 1.8 : 1;
       const uniq = [...new Set(nums)];
       const finalNums = uniq.length ? uniq : [...selected];
-      const swap = merge ? undefined : parseSwap(t, finalNums);
-      // при замене фона слова вроде «поставь»/«перенеси» не должны превращаться в другие операции
-      const ops = swap ? [] : found.map((f) => f.op);
-      return { text, nums: finalNums, ops, merge, swap, amount };
+      const desc = merge || !SWAP_WORDS.test(t) ? '' : bgDescription(t);
+      // «фон 2», «на фоне фото 2», «רקע של תמונה 2» — фон берём с другого фото, а не по описанию
+      const bgIsPhoto = new RegExp(`(фон\\S*|background|backdrop|רקע)(\\s+(of|של))?(\\s+${PHOTO_WORD})?\\s+\\d`).test(t);
+      const swap = merge || (desc && !bgIsPhoto) ? undefined : parseSwap(t, finalNums);
+      const bgDesc = !swap && desc ? desc : undefined;
+      // при замене фона слова вроде «поставь»/«убери» не должны превращаться в другие операции
+      const ops = swap || bgDesc ? [] : found.map((f) => f.op);
+      return { text, nums: finalNums, ops, merge, swap, bgDesc, amount };
     });
 }
 
@@ -378,6 +415,9 @@ function layout(n: number, mode: MergeMode): [number, number, number, number][] 
 export type LogEntry =
   | { kind: 'done'; nums: number[]; ops: PhotoOp[] }
   | { kind: 'swapped'; person: number; bg: number; result: number }
+  | { kind: 'bgReplaced'; photo: number; desc: string; look?: 'blur' | 'bw' | 'removed'; result: number; credit?: string }
+  | { kind: 'bgNotFound'; desc: string }
+  | { kind: 'netError' }
   | { kind: 'noPerson'; person: number }
   | { kind: 'modelError' }
   | { kind: 'merged'; nums: number[]; mode: MergeMode; result: number }
@@ -413,6 +453,49 @@ export async function runCommands(start: HTMLCanvasElement[], cmds: PhotoCommand
         }
       } catch {
         log.push({ kind: 'modelError' });
+      }
+      continue;
+    }
+    if (c.bgDesc) {
+      const nums = c.nums.length ? c.nums : imgs.length === 1 ? [1] : [];
+      if (!nums.length) {
+        log.push({ kind: 'noNumber', text: c.text });
+        continue;
+      }
+      const bad = nums.filter((n) => n < 1 || n > imgs.length);
+      if (bad.length) {
+        log.push({ kind: 'badNumber', nums: bad, count: imgs.length });
+        continue;
+      }
+      let segment: typeof import('./segment');
+      try {
+        segment = await import('./segment');
+      } catch {
+        log.push({ kind: 'modelError' });
+        continue;
+      }
+      const { bgSource, makeBackground, BgNotFoundError, BgNetworkError } = await import('./bgRequest');
+      const src = bgSource(c.bgDesc);
+      const look = src.kind === 'own' ? src.effect : src.kind === 'color' && src.removed ? 'removed' : undefined;
+      for (const n of nums) {
+        try {
+          const photo = imgs[n - 1];
+          const mask = await segment.cutout(photo);
+          const bg = await makeBackground(src, photo, mask);
+          imgs.push(segment.composite(photo, mask, bg.img, bg.tint));
+          log.push({ kind: 'bgReplaced', photo: n, desc: c.bgDesc, look, result: imgs.length, credit: bg.credit });
+        } catch (e) {
+          log.push(
+            e instanceof segment.NoPersonError
+              ? { kind: 'noPerson', person: n }
+              : e instanceof BgNotFoundError
+                ? { kind: 'bgNotFound', desc: c.bgDesc }
+                : e instanceof BgNetworkError
+                  ? { kind: 'netError' }
+                  : { kind: 'modelError' }
+          );
+          if (!(e instanceof segment.NoPersonError)) break; // фон не нашёлся — для остальных фото тоже не найдётся
+        }
       }
       continue;
     }

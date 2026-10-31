@@ -88,17 +88,19 @@ export function PhotosPanel({ api }: { api: CardApi }) {
     const clause =
       word === t.ui.hintSwap
         ? t.ui.swapTemplate.replace('{a}', String(selected[0] ?? 1)).replace('{b}', String(selected[1] ?? 2))
-        : `${nums ? nums + ' ' : ''}${word}`;
+        : word === t.ui.hintBgAsk
+          ? t.ui.bgTemplate.replace('{a}', nums || '1') // пользователь допишет или поменяет, какой фон хочет
+          : `${nums ? nums + ' ' : ''}${word}`;
     setCommand((c) => (c.trim() ? `${c.trim().replace(/;$/, '')}; ${clause}` : clause));
   };
 
-  const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped'];
+  const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped', 'bgReplaced'];
 
   /** «Сделать это»: разбираем текст и выполняем по очереди (замена фона — пару секунд). */
   const doIt = async () => {
     if (!photos || !command.trim() || busy) return;
     const cmds = parseCommands(command, count, selected);
-    setBusy(cmds.some((c) => c.swap) ? 'swap' : 'edit');
+    setBusy(cmds.some((c) => c.swap || c.bgDesc) ? 'swap' : 'edit');
     try {
       const res = await runCommands(photos.imgs, cmds);
       if (res.log.some((l) => OK_KINDS.includes(l.kind))) setImgs(res.imgs);
@@ -150,6 +152,19 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         return [false, t.ui.peNoPerson.replace('{p}', String(l.person))];
       case 'modelError':
         return [false, t.ui.peModelError];
+      case 'bgReplaced':
+        return [
+          true,
+          t.ui.peBgReplaced
+            .replace('{p}', String(l.photo))
+            .replace('{d}', l.look ? t.ui.bgLooks[l.look] : `«${l.desc}»`)
+            .replace('{r}', String(l.result)) +
+            (l.credit ? ` (${t.ui.peBgCredit} ${l.credit})` : ''),
+        ];
+      case 'bgNotFound':
+        return [false, t.ui.peBgNotFound.replace('{d}', l.desc)];
+      case 'netError':
+        return [false, t.ui.peNetError];
       default:
         return [false, t.ui.peNotUnderstood.replace('{c}', l.text)];
     }
@@ -157,6 +172,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
 
   const HINTS: [string, string][] = [
     ['👤', t.ui.hintSwap],
+    ['🏞️', t.ui.hintBgAsk],
     ['⬛', t.ui.hintBw],
     ['🔄', t.ui.hintRotate],
     ['🪞', t.ui.hintFlip],

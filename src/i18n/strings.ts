@@ -74,6 +74,13 @@ interface Dict {
     peNoPerson: string;
     peModelError: string;
     peSwapping: string;
+    hintBgAsk: string;
+    bgTemplate: string;
+    peBgReplaced: string;
+    peBgCredit: string;
+    bgLooks: Record<'blur' | 'bw' | 'removed', string>;
+    peBgNotFound: string;
+    peNetError: string;
     hintBw: string;
     hintRotate: string;
     hintFlip: string;
@@ -243,7 +250,7 @@ const ru: Dict = {
     photoSectionTitle: 'Добавить и изменить фото',
     peTapHint: 'Нажмите на фото, чтобы отметить его. Номер фото — в левом верхнем углу.',
     peCommandLabel: 'Что сделать? Напишите номер фото и что изменить — или номера фото, которые объединить',
-    pePlaceholder: 'Например: 1 чёрно-белое; объединить 1 2 3; фон 2 вместо фона 1',
+    pePlaceholder: 'Например: 1 чёрно-белое; объединить 1 2 3; фон 2 вместо фона 1; 1 фон горы',
     peDoIt: 'Сделать это',
     peUndo: 'Отменить',
     peDone: 'Фото {n}: {what}',
@@ -254,13 +261,20 @@ const ru: Dict = {
     peNeedTwo: 'Чтобы объединить, нужно минимум два номера фото, например: объединить 1 2',
     peNotUnderstood: 'Не понял «{c}»',
     peExamples:
-      'Можно: повернуть влево/вправо, перевернуть, зеркально, обрезать квадратом, приблизить, чёрно-белое, сепия, негатив, ярче, темнее, контрастнее, насыщеннее, бледнее, теплее, холоднее, размыть, резче, виньетка, рамка, скруглить углы, копировать, на первое место, удалить, объединить (рядом / друг под другом / наложить). Слова «чуть» и «сильно» меняют силу.',
+      'Можно: повернуть влево/вправо, перевернуть, зеркально, обрезать квадратом, приблизить, чёрно-белое, сепия, негатив, ярче, темнее, контрастнее, насыщеннее, бледнее, теплее, холоднее, размыть, резче, виньетка, рамка, скруглить углы, копировать, на первое место, удалить, объединить (рядом / друг под другом / наложить). Слова «чуть» и «сильно» меняют силу. Фон: «1 на фоне 2», «1 фон горы», «1 фон Эйфелева башня», «1 белый фон», «размой фон на 1», «убери фон на 1».',
     hintSwap: 'человек на другой фон',
     swapTemplate: '{a} на фоне {b}',
     peSwapped: 'Человек с фото {p} на фоне фото {b} — новое фото № {r}',
     peNoPerson: 'На фото {p} не нашлось человека — замена фона работает для фото людей',
     peModelError: 'Не удалось загрузить распознавание людей. Проверьте интернет и попробуйте ещё раз',
     peSwapping: 'Меняем фон… (первый раз — до минуты)',
+    hintBgAsk: 'фон по описанию',
+    bgTemplate: 'поставь на фото {a} фон закат над морем',
+    peBgReplaced: 'Фото {p}: новый фон — {d}. Новое фото № {r}',
+    peBgCredit: 'фон:',
+    bgLooks: { blur: 'размытый', bw: 'чёрно-белый', removed: 'чистый белый' },
+    peBgNotFound: 'Не нашёл фон «{d}». Попробуйте написать по-другому, например: море, горы, лес, город ночью, белый, размытый',
+    peNetError: 'Не удалось найти фон в интернете. Проверьте подключение и попробуйте ещё раз',
     hintBw: 'чёрно-белое',
     hintRotate: 'повернуть вправо',
     hintFlip: 'отразить зеркально',
@@ -443,13 +457,20 @@ const he: Dict = {
     peNeedTwo: 'כדי למזג צריך לפחות שני מספרים, לדוגמה: מזג 1 2',
     peNotUnderstood: 'לא הבנתי «{c}»',
     peExamples:
-      'אפשר: סובב ימינה/שמאלה, הפוך, מראה, חתוך ריבוע, הגדל, שחור לבן, ספיה, נגטיב, בהיר יותר, כהה יותר, ניגודיות, צבעוני, דהוי, חם יותר, קר יותר, טשטש, חד, וינייטה, מסגרת, עגל פינות, שכפל, ראשונה, מחק, מזג (בשורה / אנכי / בשכבות). «קצת» ו«מאוד» משנים את העוצמה.',
+      'אפשר: סובב ימינה/שמאלה, הפוך, מראה, חתוך ריבוע, הגדל, שחור לבן, ספיה, נגטיב, בהיר יותר, כהה יותר, ניגודיות, צבעוני, דהוי, חם יותר, קר יותר, טשטש, חד, וינייטה, מסגרת, עגל פינות, שכפל, ראשונה, מחק, מזג (בשורה / אנכי / בשכבות). «קצת» ו«מאוד» משנים את העוצמה. רקע: «1 על רקע 2», «1 רקע הרים», «1 רקע לבן», «טשטש רקע 1».',
     hintSwap: 'אדם על רקע אחר',
     swapTemplate: 'תמונה {a} על רקע {b}',
     peSwapped: 'האדם מתמונה {p} על הרקע של תמונה {b} — תמונה חדשה מס׳ {r}',
     peNoPerson: 'לא נמצא אדם בתמונה {p} — החלפת רקע עובדת בתמונות של אנשים',
     peModelError: 'לא ניתן לטעון את זיהוי האנשים. בדקו את החיבור לאינטרנט ונסו שוב',
     peSwapping: 'מחליפים רקע… (בפעם הראשונה — עד דקה)',
+    hintBgAsk: 'רקע לפי תיאור',
+    bgTemplate: 'תמונה {a} רקע שקיעה על הים',
+    peBgReplaced: 'תמונה {p}: רקע חדש — {d}. תמונה חדשה מס׳ {r}',
+    peBgCredit: 'רקע:',
+    bgLooks: { blur: 'מטושטש', bw: 'שחור לבן', removed: 'לבן נקי' },
+    peBgNotFound: 'לא נמצא רקע «{d}». נסו לכתוב אחרת, לדוגמה: ים, הרים, יער, עיר בלילה, לבן, מטושטש',
+    peNetError: 'לא ניתן למצוא רקע באינטרנט. בדקו את החיבור ונסו שוב',
     hintBw: 'שחור לבן',
     hintRotate: 'סובב ימינה',
     hintFlip: 'מראה',
@@ -631,13 +652,20 @@ const en: Dict = {
     peNeedTwo: 'To merge, give at least two photo numbers, e.g.: merge 1 2',
     peNotUnderstood: 'Didn’t understand “{c}”',
     peExamples:
-      'You can: rotate right/left, upside down, mirror, crop square, zoom, black and white, sepia, negative, brighter, darker, contrast, vivid, muted, warmer, cooler, blur, sharpen, vignette, border, round corners, copy, move first, delete, merge (side by side / stack / overlay). “a bit” and “very” change the strength.',
+      'You can: rotate right/left, upside down, mirror, crop square, zoom, black and white, sepia, negative, brighter, darker, contrast, vivid, muted, warmer, cooler, blur, sharpen, vignette, border, round corners, copy, move first, delete, merge (side by side / stack / overlay). “a bit” and “very” change the strength. Background: “1 on the background of 2”, “1 background mountains”, “1 white background”, “blur background 1”, “remove background 1”.',
     hintSwap: 'person on another background',
     swapTemplate: '{a} on the background of {b}',
     peSwapped: 'Person from photo {p} on the background of photo {b} — new photo #{r}',
     peNoPerson: 'No person found in photo {p} — background swap works for photos of people',
     peModelError: 'Could not load person detection. Check your internet connection and try again',
     peSwapping: 'Swapping background… (first time — up to a minute)',
+    hintBgAsk: 'background by description',
+    bgTemplate: 'photo {a} background sunset over the sea',
+    peBgReplaced: 'Photo {p}: new background — {d}. New photo #{r}',
+    peBgCredit: 'background:',
+    bgLooks: { blur: 'blurred', bw: 'black and white', removed: 'plain white' },
+    peBgNotFound: 'Couldn’t find a “{d}” background. Try other words, e.g.: sea, mountains, forest, city at night, white, blurred',
+    peNetError: 'Couldn’t search for a background online. Check your connection and try again',
     hintBw: 'black and white',
     hintRotate: 'rotate right',
     hintFlip: 'mirror',

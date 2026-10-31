@@ -120,12 +120,24 @@ async function solidMask(img: HTMLCanvasElement): Promise<HTMLCanvasElement> {
   const on = new Uint8Array(n);
   const v = new Float32Array(n); // общая уверенность «это человек»
   const both = !!b && b.w === w && b.h === h;
+  // где голова: DeepLab обводит её грубо и захватывает куски старого фона над головой («пятна»),
+  // поэтому верхнюю часть фигуры (голова, волосы, шапка) режем только по «селфи»
+  let top = h;
+  let bottom = 0;
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++)
+      if (a.p[y * w + x] > 0.5) {
+        top = Math.min(top, y);
+        bottom = y;
+        break;
+      }
+  const bodyFrom = top + (bottom - top) * 0.25;
   for (let i = 0; i < n; i++) {
     const s = a.p[i];
-    const d = both ? b!.p[i] : 0;
+    const d = both && i / w >= bodyFrom ? b!.p[i] : 0;
     v[i] = Math.max(s, d);
-    // граница — по «селфи» (точнее); DeepLab добавляет тело только там, где «селфи» хоть немного согласна
-    on[i] = s > 0.4 || (d > 0.6 && s > 0.15) ? 1 : 0;
+    // граница — по «селфи» (точнее); DeepLab добавляет тело (ноги, руки) только там, где «селфи» хоть немного согласна
+    on[i] = s > 0.45 || (d > 0.6 && s > 0.15) ? 1 : 0;
   }
 
   // 3) заливка «снаружи» от краёв кадра по фону; всё незалитое — человек (дыры заделаны)
@@ -309,25 +321,71 @@ function averageColor(src: HTMLCanvasElement): string {
 }
 
 /**
+ * «Очистка краёв»: в полупрозрачной кромке маски цвет пикселей — смесь человека и старого фона
+ * (над головой — кусочки неба, тёмные пятна). Заменяем цвет кромки цветом соседних пикселей тела.
+ */
+function bleedEdges(person: HTMLCanvasElement, mask: HTMLCanvasElement) {
+  const w = person.width;
+  const h = person.height;
+  // ядро — только уверенные пиксели человека
+  const core = makeCanvas(w, h);
+  const kg = core.getContext('2d', { willReadFrequently: true })!;
+  kg.drawImage(mask, 0, 0);
+  const img = kg.getImageData(0, 0, w, h);
+  for (let i = 3; i < img.data.length; i += 4) img.data[i] = img.data[i] > 240 ? 255 : 0;
+  kg.putImageData(img, 0, 0);
+  kg.globalCompositeOperation = 'source-in';
+  kg.drawImage(person, 0, 0);
+
+  // размываем ядро наружу: размытие прозрачной картинки даёт средний цвет соседних пикселей тела
+  const out = makeCanvas(w, h);
+  const og = out.getContext('2d')!;
+  const r = Math.max(2, Math.round(Math.min(w, h) * 0.006));
+  // под низом — исходное фото: там, где рядом нет уверенного тела (тонкие руки, пальцы), цвет остаётся как был
+  og.drawImage(person, 0, 0);
+  if ('filter' in og) {
+    for (const k of [4, 2, 1]) {
+      og.filter = `blur(${r * k}px)`;
+      for (let j = 0; j < 3; j++) og.drawImage(core, 0, 0);
+    }
+    og.filter = 'none';
+  }
+  og.drawImage(core, 0, 0);
+  return out;
+}
+
+/**
  * Человек с фото `person` на фоне фото `background`. Размер и композиция — как у первого фото
  * (человек остаётся там же, где стоял).
  */
 export async function replaceBackground(person: HTMLCanvasElement, background: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  return composite(person, await cutout(person), background);
+}
+
+/** Маска человека для замены фона; если людей нет — NoPersonError. */
+export async function cutout(person: HTMLCanvasElement): Promise<HTMLCanvasElement> {
   const { mask, coverage } = await personMask(person);
   if (coverage < 0.002) throw new NoPersonError('no person found');
+  return mask;
+}
+
+/** Человек (по маске) поверх нового фона. `tint` — подстроить цвет человека под освещение фона. */
+export function composite(person: HTMLCanvasElement, mask: HTMLCanvasElement, background: HTMLCanvasElement, tint = true): HTMLCanvasElement {
   const w = person.width;
   const h = person.height;
 
   // 1) вырезаем человека: фото + маска как прозрачность
   const cut = makeCanvas(w, h);
   const cg = cut.getContext('2d')!;
-  cg.drawImage(person, 0, 0);
+  cg.drawImage(bleedEdges(person, mask), 0, 0);
   // подстройка под освещение нового фона: лёгкий оттенок его среднего цвета (закат → теплее)
-  cg.globalCompositeOperation = 'soft-light';
-  cg.globalAlpha = 0.35;
-  cg.fillStyle = averageColor(background);
-  cg.fillRect(0, 0, w, h);
-  cg.globalAlpha = 1;
+  if (tint) {
+    cg.globalCompositeOperation = 'soft-light';
+    cg.globalAlpha = 0.35;
+    cg.fillStyle = averageColor(background);
+    cg.fillRect(0, 0, w, h);
+    cg.globalAlpha = 1;
+  }
   cg.globalCompositeOperation = 'destination-in';
   cg.drawImage(mask, 0, 0);
 
