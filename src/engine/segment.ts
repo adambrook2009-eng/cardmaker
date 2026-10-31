@@ -92,8 +92,8 @@ const makeCanvas = (w: number, h: number) => {
   return c;
 };
 
-/** Маска человека на одном изображении (холст: альфа = «насколько это человек»). */
-async function segmentOnce(img: HTMLCanvasElement, model: SegModel): Promise<HTMLCanvasElement> {
+/** Вероятность «это человек» для каждого пикселя по одной модели. */
+async function probability(img: HTMLCanvasElement, model: SegModel) {
   const seg = await getSegmenter(model);
   const res = seg.segment(img);
   const masks = res.confidenceMasks ?? [];
@@ -102,17 +102,122 @@ async function segmentOnce(img: HTMLCanvasElement, model: SegModel): Promise<HTM
   const h = masks[0].height;
   const p = SEGMENTERS[model].person(masks.map((m) => m.getAsFloat32Array()));
   res.close();
-  const small = makeCanvas(w, h);
-  const sg = small.getContext('2d')!;
-  const data = sg.createImageData(w, h);
-  for (let i = 0; i < p.length; i++) {
-    // «поджимаем» неуверенные края: s-образная кривая вокруг 0.5
-    const a = p[i] <= 0.3 ? 0 : p[i] >= 0.7 ? 1 : (p[i] - 0.3) / 0.4;
-    data.data[i * 4] = data.data[i * 4 + 1] = data.data[i * 4 + 2] = 255;
-    data.data[i * 4 + 3] = Math.round(a * a * (3 - 2 * a) * 255);
+  return { p, w, h };
+}
+
+/**
+ * Плотная маска человека: тело без «дыр», через которые просвечивал бы новый фон.
+ *  1) две нейросети: «селфи» (голова, руки, волосы) + DeepLab (фигура целиком, ноги) — берём объединение;
+ *  2) порог → чёткая форма;
+ *  3) заделываем дыры: всё, что не соединено с краем кадра, — внутри человека, значит это тело;
+ *  4) убираем мелкие случайные пятна вдали от человека.
+ */
+async function solidMask(img: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  const a = await probability(img, 'selfie');
+  const b = await probability(img, 'deeplab').catch(() => null);
+  const { w, h } = a;
+  const n = w * h;
+  const on = new Uint8Array(n);
+  const v = new Float32Array(n); // общая уверенность «это человек»
+  const both = !!b && b.w === w && b.h === h;
+  for (let i = 0; i < n; i++) {
+    const s = a.p[i];
+    const d = both ? b!.p[i] : 0;
+    v[i] = Math.max(s, d);
+    // граница — по «селфи» (точнее); DeepLab добавляет тело только там, где «селфи» хоть немного согласна
+    on[i] = s > 0.4 || (d > 0.6 && s > 0.15) ? 1 : 0;
   }
-  sg.putImageData(data, 0, 0);
-  return small;
+
+  // 3) заливка «снаружи» от краёв кадра по фону; всё незалитое — человек (дыры заделаны)
+  const outside = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  let head = 0;
+  let tail = 0;
+  const push = (i: number) => {
+    if (!on[i] && !outside[i]) {
+      outside[i] = 1;
+      queue[tail++] = i;
+    }
+  };
+  for (let x = 0; x < w; x++) {
+    push(x);
+    push((h - 1) * w + x);
+  }
+  for (let y = 0; y < h; y++) {
+    push(y * w);
+    push(y * w + w - 1);
+  }
+  while (head < tail) {
+    const i = queue[head++];
+    const x = i % w;
+    if (x > 0) push(i - 1);
+    if (x < w - 1) push(i + 1);
+    if (i >= w) push(i - w);
+    if (i < n - w) push(i + w);
+  }
+  // Дыра = область не-человека, не соединённая с краем. Заделываем только настоящие дыры в теле:
+  // маленькие или с признаками человека. Просвет между рукой и телом (там явно фон) — оставляем.
+  const holeId = new Int32Array(n);
+  for (let s = 0; s < n; s++) {
+    if (on[s] || outside[s] || holeId[s]) continue;
+    head = tail = 0;
+    queue[tail++] = s;
+    holeId[s] = 1;
+    let sum = 0;
+    while (head < tail) {
+      const i = queue[head++];
+      sum += v[i];
+      const x = i % w;
+      const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i - w, i + w];
+      for (const j of nb)
+        if (j >= 0 && j < n && !on[j] && !outside[j] && !holeId[j]) {
+          holeId[j] = 1;
+          queue[tail++] = j;
+        }
+    }
+    const size = tail;
+    const fill = size < n * 0.004 || sum / size > 0.15;
+    for (let k = 0; k < size; k++) {
+      const i = queue[k];
+      if (fill) on[i] = 1;
+      else outside[i] = 1; // оставляем прозрачным
+    }
+  }
+
+  // 4) оставляем крупные части (человек и, например, отдельно стоящая рука), мелкий «мусор» убираем
+  const label = new Int32Array(n);
+  const sizes: number[] = [0];
+  for (let s = 0; s < n; s++) {
+    if (!on[s] || label[s]) continue;
+    const id = sizes.length;
+    let size = 0;
+    head = tail = 0;
+    queue[tail++] = s;
+    label[s] = id;
+    while (head < tail) {
+      const i = queue[head++];
+      size++;
+      const x = i % w;
+      const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i - w, i + w];
+      for (const j of nb)
+        if (j >= 0 && j < n && on[j] && !label[j]) {
+          label[j] = id;
+          queue[tail++] = j;
+        }
+    }
+    sizes.push(size);
+  }
+  const biggest = Math.max(0, ...sizes);
+  const out = makeCanvas(w, h);
+  const og = out.getContext('2d')!;
+  const data = og.createImageData(w, h);
+  for (let i = 0; i < n; i++) {
+    const keep = on[i] && sizes[label[i]] >= biggest * 0.08;
+    data.data[i * 4] = data.data[i * 4 + 1] = data.data[i * 4 + 2] = 255;
+    data.data[i * 4 + 3] = keep ? 255 : 0;
+  }
+  og.putImageData(data, 0, 0);
+  return out;
 }
 
 /** Рамки людей, расширенные с запасом (поднятые руки, волосы, ступни). */
@@ -141,14 +246,15 @@ function choke(mask: HTMLCanvasElement) {
   const d = img.data;
   for (let i = 3; i < d.length; i += 4) {
     const a = d[i] / 255;
-    const k = Math.min(1, Math.max(0, (a - 0.45) / 0.4));
+    // тело уже плотное (альфа = 1) — кривая меняет только мягкий внешний край
+    const k = Math.min(1, Math.max(0, (a - 0.35) / 0.4));
     d[i] = Math.round(k * k * (3 - 2 * k) * 255);
   }
   g.putImageData(img, 0, 0);
 }
 
 /** Маска всех людей на фото размером с фото + доля площади, занятая людьми. */
-export async function personMask(photo: HTMLCanvasElement, model: SegModel = 'selfie') {
+export async function personMask(photo: HTMLCanvasElement) {
   const mask = makeCanvas(photo.width, photo.height);
   const mg = mask.getContext('2d')!;
   mg.imageSmoothingQuality = 'high';
@@ -158,13 +264,13 @@ export async function personMask(photo: HTMLCanvasElement, model: SegModel = 'se
   const boxes = await personBoxes(photo).catch(() => []);
   if (!boxes.length) {
     // детектор никого не нашёл (например, крупный портрет-селфи) — сегментируем всё фото
-    mg.drawImage(await segmentOnce(photo, model), 0, 0, mask.width, mask.height);
+    mg.drawImage(await solidMask(photo), 0, 0, mask.width, mask.height);
   } else {
     mg.globalCompositeOperation = 'lighten'; // объединяем маски нескольких людей
     for (const b of boxes) {
       const crop = makeCanvas(b.w, b.h);
       crop.getContext('2d')!.drawImage(photo, b.x, b.y, b.w, b.h, 0, 0, crop.width, crop.height);
-      mg.drawImage(await segmentOnce(crop, model), b.x, b.y, b.w, b.h);
+      mg.drawImage(await solidMask(crop), b.x, b.y, b.w, b.h);
     }
   }
   choke(mask);
@@ -206,8 +312,8 @@ function averageColor(src: HTMLCanvasElement): string {
  * Человек с фото `person` на фоне фото `background`. Размер и композиция — как у первого фото
  * (человек остаётся там же, где стоял).
  */
-export async function replaceBackground(person: HTMLCanvasElement, background: HTMLCanvasElement, model: SegModel = 'selfie'): Promise<HTMLCanvasElement> {
-  const { mask, coverage } = await personMask(person, model);
+export async function replaceBackground(person: HTMLCanvasElement, background: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  const { mask, coverage } = await personMask(person);
   if (coverage < 0.002) throw new NoPersonError('no person found');
   const w = person.width;
   const h = person.height;
@@ -243,7 +349,7 @@ export async function replaceBackground(person: HTMLCanvasElement, background: H
   cover(wg, background, w, h);
   wg.globalCompositeOperation = 'destination-in';
   wg.drawImage(edge, 0, 0);
-  g.globalAlpha = 0.15;
+  g.globalAlpha = 0.1;
   g.globalCompositeOperation = 'screen';
   g.drawImage(wrap, 0, 0);
   return out;
