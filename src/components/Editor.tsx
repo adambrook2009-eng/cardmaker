@@ -68,7 +68,14 @@ export function Editor({ api }: { api: CardApi }) {
           onMoveText={(x, y) => api.patchText({ x, y })}
         />
         </div>
-        <SendBar card={card} />
+        <SendBar
+          card={card}
+          onPreview={() => {
+            api.replay();
+            // с музыкой — и мелодию с начала, чтобы просмотр был как готовое видео
+            if (card.music.kind !== 'none') musicPlayer.play(card.music);
+          }}
+        />
       </div>
 
       <div className="tools">

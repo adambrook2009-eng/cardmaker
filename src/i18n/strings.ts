@@ -51,6 +51,7 @@ interface Dict {
     videoReady: string;
     imageReady: string;
     previewTitle: string;
+    preview: string;
     edit: string;
     liveBg: string;
     photoSectionTitle: string;
@@ -230,6 +231,7 @@ const ru: Dict = {
     videoReady: 'Видео готово!',
     imageReady: 'Открытка готова!',
     previewTitle: 'Предпросмотр',
+    preview: 'Просмотр',
     edit: 'Изменить',
     liveBg: 'живой фон: двигается в видео',
     photoSectionTitle: 'Добавить и изменить фото',
@@ -412,6 +414,7 @@ const he: Dict = {
     videoReady: 'הסרטון מוכן!',
     imageReady: 'הגלויה מוכנה!',
     previewTitle: 'תצוגה מקדימה',
+    preview: 'צפייה',
     edit: 'עריכה',
     liveBg: 'רקע חי: זז בסרטון',
     photoSectionTitle: 'הוספה ועריכה של תמונות',
@@ -593,6 +596,7 @@ const en: Dict = {
     videoReady: 'Video is ready!',
     imageReady: 'Your card is ready!',
     previewTitle: 'Preview',
+    preview: 'Play',
     edit: 'Edit',
     liveBg: 'live background: moves in the video',
     photoSectionTitle: 'Add and edit photos',

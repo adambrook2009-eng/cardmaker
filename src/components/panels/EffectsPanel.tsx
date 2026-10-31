@@ -121,9 +121,6 @@ export function EffectsPanel({ api }: { api: CardApi }) {
           </button>
         ))}
       </div>
-      <button className="link-btn" onClick={api.replay}>
-        🔁 {t.ui.replay}
-      </button>
     </div>
   );
 }

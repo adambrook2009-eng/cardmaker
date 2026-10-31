@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { CardState } from '../types';
 import { useI18n } from '../i18n/I18nProvider';
-import { canRecordVideo, copyImage, download, exportPNG, exportVideo, extFor, shareOrDownload } from '../engine/export';
+import { canRecordVideo, download, exportPNG, exportVideo, extFor, shareOrDownload } from '../engine/export';
 import { PreviewSheet } from './PreviewSheet';
 
 const hasMotion = (c: CardState) =>
@@ -29,7 +29,7 @@ async function keepScreenOn(): Promise<() => void> {
   }
 }
 
-export function SendBar({ card }: { card: CardState }) {
+export function SendBar({ card, onPreview }: { card: CardState; onPreview: () => void }) {
   const { t } = useI18n();
   const [seconds, setSecondsState] = useState(savedSeconds);
   const setSeconds = (s: number) => {
@@ -88,9 +88,6 @@ export function SendBar({ card }: { card: CardState }) {
     if (blob) setPreview(blob);
   };
 
-  const copy = async () => {
-    if (await copyImage(await exportPNG(card))) flash(t.ui.copied);
-  };
 
   return (
     <>
@@ -102,7 +99,8 @@ export function SendBar({ card }: { card: CardState }) {
         <button onClick={() => prepare('video')} disabled={!hasMotion(card)}>
           🎬 {t.ui.saveVideo}
         </button>
-        {'ClipboardItem' in window && <button onClick={copy}>📋 {t.ui.copy}</button>}
+        {/* проиграть открытку с самого начала: появление, эффекты, музыка */}
+        <button onClick={onPreview}>▶ {t.ui.preview}</button>
       </div>
       {hasMotion(card) && (
         <div className="duration-row" role="radiogroup" aria-label={t.ui.videoLength}>
