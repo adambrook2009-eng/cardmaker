@@ -109,6 +109,18 @@ h1, h3 { margin: 0; }
   .preview { position: sticky; top: 72px; }
 }
 .preview { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+/* Телефон и планшет: открытка «прилипает» под верхней панелью, а кнопки и вкладки прокручиваются под ней */
+@media (max-width: 899px) {
+  .preview { display: contents; } /* открытка и кнопки становятся отдельными строками сетки */
+  .editor { row-gap: 12px; }
+  .preview > .canvas-wrap {
+    position: sticky; top: calc(var(--topbar-h, 60px) + 4px); z-index: 5;
+    justify-self: center; max-width: min(100%, 46dvh);
+    /* фон-«полоса» во всю ширину вокруг открытки: прокручиваемое не просвечивает по бокам */
+    background: var(--bg); box-shadow: 0 0 0 100vmax var(--bg);
+    clip-path: inset(-6px -100vmax -10px -100vmax);
+  }
+}
 .card-canvas {
   width: 100%; max-width: min(100%, 62dvh); aspect-ratio: 1;
   border-radius: var(--radius); box-shadow: var(--shadow);

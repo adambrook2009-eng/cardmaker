@@ -1,6 +1,6 @@
 import { useI18n } from './i18n/I18nProvider';
 import { useCard, type CardApi } from './state/useCard';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { CategoryId } from './types';
 import { CATEGORIES, getCategory } from './data/categories';
 import { PRESETS } from './data/fx';
@@ -25,9 +25,19 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // высота верхней панели — чтобы открытка на телефоне «прилипала» сразу под ней
+  const topbar = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = topbar.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--topbar-h', `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar" ref={topbar}>
         {card ? (
           <button className="back" onClick={api.reset}>
             {rtl ? '→' : '←'} {t.ui.back}
