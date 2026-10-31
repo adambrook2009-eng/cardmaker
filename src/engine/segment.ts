@@ -296,6 +296,63 @@ export async function personMask(photo: HTMLCanvasElement) {
   return { mask, coverage: sum / (64 * 64), boxes };
 }
 
+/* ---------- Части человека: волосы и одежда ---------- */
+
+/** Классы модели «селфи»: 0 фон, 1 волосы, 2 кожа тела, 3 лицо, 4 одежда, 5 прочее (аксессуары). */
+const PART_CLASS = { hair: 1, clothes: 4 } as const;
+export type BodyPart = keyof typeof PART_CLASS;
+
+/** Маска части тела (волосы / одежда) для куска фото: альфа = уверенность модели. */
+async function partMaskOnce(img: HTMLCanvasElement, part: BodyPart) {
+  const seg = await getSegmenter('selfie');
+  const res = seg.segment(img);
+  const masks = res.confidenceMasks ?? [];
+  if (masks.length <= PART_CLASS[part]) {
+    res.close();
+    throw new Error('no masks');
+  }
+  const m = masks[PART_CLASS[part]];
+  const { width: w, height: h } = m;
+  const p = m.getAsFloat32Array();
+  res.close();
+  const out = makeCanvas(w, h);
+  const og = out.getContext('2d')!;
+  const data = og.createImageData(w, h);
+  for (let i = 0; i < w * h; i++) {
+    const k = Math.min(1, Math.max(0, (p[i] - 0.3) / 0.4)); // мягкий порог: край без «ступенек»
+    data.data[i * 4] = data.data[i * 4 + 1] = data.data[i * 4 + 2] = 255;
+    data.data[i * 4 + 3] = Math.round(k * k * (3 - 2 * k) * 255);
+  }
+  og.putImageData(data, 0, 0);
+  return out;
+}
+
+/** Маска волос или одежды всех людей на фото (размером с фото) + доля площади. */
+export async function bodyPartMask(photo: HTMLCanvasElement, part: BodyPart) {
+  const mask = makeCanvas(photo.width, photo.height);
+  const mg = mask.getContext('2d')!;
+  mg.imageSmoothingQuality = 'high';
+  const feather = Math.max(1, Math.round(Math.min(photo.width, photo.height) * 0.002));
+  if ('filter' in mg) mg.filter = `blur(${feather}px)`;
+  const boxes = await personBoxes(photo).catch(() => []);
+  if (!boxes.length) mg.drawImage(await partMaskOnce(photo, part), 0, 0, mask.width, mask.height);
+  else {
+    mg.globalCompositeOperation = 'lighten';
+    for (const b of boxes) {
+      const crop = makeCanvas(b.w, b.h);
+      crop.getContext('2d')!.drawImage(photo, b.x, b.y, b.w, b.h, 0, 0, crop.width, crop.height);
+      mg.drawImage(await partMaskOnce(crop, part), b.x, b.y, b.w, b.h);
+    }
+  }
+  const probe = makeCanvas(64, 64);
+  const pg = probe.getContext('2d', { willReadFrequently: true })!;
+  pg.drawImage(mask, 0, 0, 64, 64);
+  const px = pg.getImageData(0, 0, 64, 64).data;
+  let sum = 0;
+  for (let i = 3; i < px.length; i += 4) sum += px[i] / 255;
+  return { mask, coverage: sum / (64 * 64) };
+}
+
 /** Вписать картинку «cover» в прямоугольник. */
 function cover(g: CanvasRenderingContext2D, src: HTMLCanvasElement, w: number, h: number) {
   const k = Math.max(w / src.width, h / src.height);

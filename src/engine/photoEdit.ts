@@ -2,6 +2,8 @@
  * «Добавить и изменить фото»: команды обычными словами («1 чёрно-белое», «объединить 1 2 3»)
  * → операции над фото. Всё считается прямо на устройстве, по пикселям — работает в любом браузере.
  */
+import { mentionsLook, parseLook, type LookRequest } from './partEdit';
+import type { BodyPart } from './segment';
 
 export type PhotoOp =
   | 'rotateR'
@@ -40,6 +42,8 @@ export interface PhotoCommand {
   swap?: { person: number; bg: number };
   /** Фон по описанию: «1 фон закат над морем», «размой фон на 2», «фото 3 на белом фоне». */
   bgDesc?: string;
+  /** Волосы / одежда: перекрасить, узор, светлее-темнее. null — про волосы/одежду, но не поняли, что сделать. */
+  look?: LookRequest | null;
   amount: number; // «чуть» 0.5 … «сильно» 1.8
 }
 
@@ -212,9 +216,11 @@ export function parseCommands(raw: string, count: number, selected: number[] = [
       const bgIsPhoto = new RegExp(`(фон\\S*|background|backdrop|רקע)(\\s+(of|של))?(\\s+${PHOTO_WORD})?\\s+\\d`).test(t);
       const swap = merge || (desc && !bgIsPhoto) ? undefined : parseSwap(t, finalNums);
       const bgDesc = !swap && desc ? desc : undefined;
+      // «волосы рыжие», «одежда в полоску» — меняем только эту часть, а не всё фото
+      const look = merge || swap || bgDesc || !mentionsLook(t) ? undefined : parseLook(t);
       // при замене фона слова вроде «поставь»/«убери» не должны превращаться в другие операции
-      const ops = swap || bgDesc ? [] : found.map((f) => f.op);
-      return { text, nums: finalNums, ops, merge, swap, bgDesc, amount };
+      const ops = swap || bgDesc || look !== undefined ? [] : found.map((f) => f.op);
+      return { text, nums: finalNums, ops, merge, swap, bgDesc, look, amount };
     });
 }
 
@@ -417,6 +423,9 @@ export type LogEntry =
   | { kind: 'swapped'; person: number; bg: number; result: number }
   | { kind: 'bgReplaced'; photo: number; desc: string; look?: 'blur' | 'bw' | 'removed'; result: number; credit?: string }
   | { kind: 'bgNotFound'; desc: string }
+  | { kind: 'looked'; nums: number[]; look: LookRequest }
+  | { kind: 'noPart'; photo: number; part: BodyPart }
+  | { kind: 'lookUnknown'; part: BodyPart }
   | { kind: 'netError' }
   | { kind: 'noPerson'; person: number }
   | { kind: 'modelError' }
@@ -496,6 +505,38 @@ export async function runCommands(start: HTMLCanvasElement[], cmds: PhotoCommand
           );
           if (!(e instanceof segment.NoPersonError)) break; // фон не нашёлся — для остальных фото тоже не найдётся
         }
+      }
+      continue;
+    }
+    if (c.look === null) {
+      log.push({ kind: 'lookUnknown', part: mentionsLook(c.text.toLowerCase()) ?? 'hair' });
+      continue;
+    }
+    if (c.look) {
+      const nums = c.nums.length ? c.nums : imgs.length === 1 ? [1] : [];
+      if (!nums.length) {
+        log.push({ kind: 'noNumber', text: c.text });
+        continue;
+      }
+      const bad = nums.filter((n) => n < 1 || n > imgs.length);
+      if (bad.length) {
+        log.push({ kind: 'badNumber', nums: bad, count: imgs.length });
+        continue;
+      }
+      try {
+        const [{ bodyPartMask }, { applyLook }] = await Promise.all([import('./segment'), import('./partEdit')]);
+        const done: number[] = [];
+        for (const n of nums) {
+          const { mask, coverage } = await bodyPartMask(imgs[n - 1], c.look.part);
+          if (coverage < 0.002) log.push({ kind: 'noPart', photo: n, part: c.look.part });
+          else {
+            imgs[n - 1] = applyLook(imgs[n - 1], mask, c.look);
+            done.push(n);
+          }
+        }
+        if (done.length) log.push({ kind: 'looked', nums: done, look: c.look });
+      } catch {
+        log.push({ kind: 'modelError' });
       }
       continue;
     }

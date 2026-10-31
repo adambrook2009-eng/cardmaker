@@ -79,6 +79,16 @@ interface Dict {
     peBgReplaced: string;
     peBgCredit: string;
     bgLooks: Record<'blur' | 'bw' | 'removed', string>;
+    hintHair: string;
+    hintClothes: string;
+    peLooking: string;
+    peLooked: string;
+    peNoPart: string;
+    peLookUnknown: string;
+    lookParts: Record<'hair' | 'clothes', string>;
+    lookPatterns: Record<'stripes' | 'dots' | 'checks', string>;
+    lookTones: Record<'lighter' | 'darker', string>;
+    lookNewColor: string;
     peBgNotFound: string;
     peNetError: string;
     hintBw: string;
@@ -273,6 +283,17 @@ const ru: Dict = {
     peBgReplaced: 'Фото {p}: новый фон — {d}. Новое фото № {r}',
     peBgCredit: 'фон:',
     bgLooks: { blur: 'размытый', bw: 'чёрно-белый', removed: 'чистый белый' },
+    hintHair: 'волосы рыжие',
+    hintClothes: 'одежда синяя',
+    peLooking: 'Ищем волосы и одежду…',
+    peLooked: 'Фото {n}: {part} — {what}',
+    peNoPart: 'На фото {p} не нашлись {part}',
+    peLookUnknown:
+      'Не понял, как изменить {part}. Можно: цвет (рыжий, блонд, каштановый, седой, чёрный, синий, красный…), «светлее» или «темнее», а для одежды — узор: полоски, горошек, клетка. Например: «1 волосы рыжие», «2 одежда в полоску». Поменять фасон одежды или форму причёски пока нельзя',
+    lookParts: { hair: 'волосы', clothes: 'одежда' },
+    lookPatterns: { stripes: 'полоски', dots: 'горошек', checks: 'клетка' },
+    lookTones: { lighter: 'светлее', darker: 'темнее' },
+    lookNewColor: 'новый цвет',
     peBgNotFound: 'Не нашёл фон «{d}». Попробуйте написать по-другому, например: море, горы, лес, город ночью, белый, размытый',
     peNetError: 'Не удалось найти фон в интернете. Проверьте подключение и попробуйте ещё раз',
     hintBw: 'чёрно-белое',
@@ -469,6 +490,17 @@ const he: Dict = {
     peBgReplaced: 'תמונה {p}: רקע חדש — {d}. תמונה חדשה מס׳ {r}',
     peBgCredit: 'רקע:',
     bgLooks: { blur: 'מטושטש', bw: 'שחור לבן', removed: 'לבן נקי' },
+    hintHair: 'שיער ג׳ינג׳י',
+    hintClothes: 'בגדים כחולים',
+    peLooking: 'מחפשים שיער ובגדים…',
+    peLooked: 'תמונה {n}: {part} — {what}',
+    peNoPart: 'בתמונה {p} לא נמצאו {part}',
+    peLookUnknown:
+      'לא הבנתי איך לשנות {part}. אפשר: צבע (ג׳ינג׳י, בלונד, ערמוני, כסוף, שחור, כחול, אדום…), «בהיר» או «כהה», ולבגדים — דוגמה: פסים, נקודות, משבצות. לדוגמה: «1 שיער ג׳ינג׳י», «2 בגדים בפסים». לשנות גזרה של בגד או צורת תספורת עדיין אי אפשר',
+    lookParts: { hair: 'שיער', clothes: 'בגדים' },
+    lookPatterns: { stripes: 'פסים', dots: 'נקודות', checks: 'משבצות' },
+    lookTones: { lighter: 'בהיר יותר', darker: 'כהה יותר' },
+    lookNewColor: 'צבע חדש',
     peBgNotFound: 'לא נמצא רקע «{d}». נסו לכתוב אחרת, לדוגמה: ים, הרים, יער, עיר בלילה, לבן, מטושטש',
     peNetError: 'לא ניתן למצוא רקע באינטרנט. בדקו את החיבור ונסו שוב',
     hintBw: 'שחור לבן',
@@ -664,6 +696,17 @@ const en: Dict = {
     peBgReplaced: 'Photo {p}: new background — {d}. New photo #{r}',
     peBgCredit: 'background:',
     bgLooks: { blur: 'blurred', bw: 'black and white', removed: 'plain white' },
+    hintHair: 'hair ginger',
+    hintClothes: 'clothes blue',
+    peLooking: 'Finding hair and clothes…',
+    peLooked: 'Photo {n}: {part} — {what}',
+    peNoPart: 'No {part} found in photo {p}',
+    peLookUnknown:
+      'Didn’t understand how to change the {part}. You can: a color (ginger, blond, chestnut, silver, black, blue, red…), “lighter” or “darker”, and for clothes a pattern: stripes, polka dots, checks. E.g.: “1 hair ginger”, “2 clothes striped”. Changing the cut of clothes or the hairstyle shape isn’t possible yet',
+    lookParts: { hair: 'hair', clothes: 'clothes' },
+    lookPatterns: { stripes: 'stripes', dots: 'polka dots', checks: 'checks' },
+    lookTones: { lighter: 'lighter', darker: 'darker' },
+    lookNewColor: 'new color',
     peBgNotFound: 'Couldn’t find a “{d}” background. Try other words, e.g.: sea, mountains, forest, city at night, white, blurred',
     peNetError: 'Couldn’t search for a background online. Check your connection and try again',
     hintBw: 'black and white',

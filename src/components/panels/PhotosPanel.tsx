@@ -48,7 +48,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
   const [selected, setSelected] = useState<number[]>([]); // номера отмеченных фото (с 1)
   const [command, setCommand] = useState('');
   const [log, setLog] = useState<LogEntry[]>([]);
-  const [busy, setBusy] = useState<'edit' | 'swap' | null>(null);
+  const [busy, setBusy] = useState<'edit' | 'swap' | 'look' | null>(null);
   const history = useRef<HTMLCanvasElement[][]>([]); // для «Отменить»
   const bg = api.card.background;
   // свои фото: текущие или сохранённые (если сейчас выбран готовый фон)
@@ -94,13 +94,13 @@ export function PhotosPanel({ api }: { api: CardApi }) {
     setCommand((c) => (c.trim() ? `${c.trim().replace(/;$/, '')}; ${clause}` : clause));
   };
 
-  const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped', 'bgReplaced'];
+  const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped', 'bgReplaced', 'looked'];
 
   /** «Сделать это»: разбираем текст и выполняем по очереди (замена фона — пару секунд). */
   const doIt = async () => {
     if (!photos || !command.trim() || busy) return;
     const cmds = parseCommands(command, count, selected);
-    setBusy(cmds.some((c) => c.swap || c.bgDesc) ? 'swap' : 'edit');
+    setBusy(cmds.some((c) => c.swap || c.bgDesc) ? 'swap' : cmds.some((c) => c.look) ? 'look' : 'edit');
     try {
       const res = await runCommands(photos.imgs, cmds);
       if (res.log.some((l) => OK_KINDS.includes(l.kind))) setImgs(res.imgs);
@@ -165,6 +165,15 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         return [false, t.ui.peBgNotFound.replace('{d}', l.desc)];
       case 'netError':
         return [false, t.ui.peNetError];
+      case 'looked': {
+        const { part, color, pattern, tone } = l.look;
+        const what = [color && t.ui.lookNewColor, pattern && t.ui.lookPatterns[pattern], tone && t.ui.lookTones[tone]].filter(Boolean).join(', ');
+        return [true, t.ui.peLooked.replace('{n}', n(l.nums)).replace('{part}', t.ui.lookParts[part]).replace('{what}', what)];
+      }
+      case 'noPart':
+        return [false, t.ui.peNoPart.replace('{part}', t.ui.lookParts[l.part]).replace('{p}', String(l.photo))];
+      case 'lookUnknown':
+        return [false, t.ui.peLookUnknown.replace('{part}', t.ui.lookParts[l.part])];
       default:
         return [false, t.ui.peNotUnderstood.replace('{c}', l.text)];
     }
@@ -173,6 +182,8 @@ export function PhotosPanel({ api }: { api: CardApi }) {
   const HINTS: [string, string][] = [
     ['👤', t.ui.hintSwap],
     ['🏞️', t.ui.hintBgAsk],
+    ['💇', t.ui.hintHair],
+    ['👕', t.ui.hintClothes],
     ['⬛', t.ui.hintBw],
     ['🔄', t.ui.hintRotate],
     ['🪞', t.ui.hintFlip],
@@ -260,7 +271,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
             </div>
             <div className="pe-actions">
               <button className="big-action" onClick={doIt} disabled={!command.trim() || !!busy}>
-                {busy === 'swap' ? `⏳ ${t.ui.peSwapping}` : busy ? '⏳' : `✨ ${t.ui.peDoIt}`}
+                {busy === 'swap' ? `⏳ ${t.ui.peSwapping}` : busy === 'look' ? `⏳ ${t.ui.peLooking}` : busy ? '⏳' : `✨ ${t.ui.peDoIt}`}
               </button>
               <button className="big-action secondary pe-undo" onClick={undo} disabled={!history.current.length}>
                 ↩ {t.ui.peUndo}
