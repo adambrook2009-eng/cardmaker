@@ -4,6 +4,7 @@ import type { SlideTransition } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { drawBackground } from '../../engine/renderer';
 import { parseCommands, runCommands, type LogEntry } from '../../engine/photoEdit';
+import { getAiKey, setAiKey } from '../../engine/aiEdit';
 import { Thumb } from '../Thumb';
 
 /** Для слайд-шоу фото уменьшаем сильнее: 20 снимков в памяти телефона — это много. */
@@ -48,7 +49,10 @@ export function PhotosPanel({ api }: { api: CardApi }) {
   const [selected, setSelected] = useState<number[]>([]); // номера отмеченных фото (с 1)
   const [command, setCommand] = useState('');
   const [log, setLog] = useState<LogEntry[]>([]);
-  const [busy, setBusy] = useState<'edit' | 'swap' | 'look' | null>(null);
+  const [busy, setBusy] = useState<'edit' | 'swap' | 'look' | 'ai' | null>(null);
+  const [aiKey, setAiKeyState] = useState(() => getAiKey());
+  const [aiOpen, setAiOpen] = useState(false);
+  const [keyDraft, setKeyDraft] = useState('');
   const history = useRef<HTMLCanvasElement[][]>([]); // для «Отменить»
   const bg = api.card.background;
   // свои фото: текущие или сохранённые (если сейчас выбран готовый фон)
@@ -94,17 +98,38 @@ export function PhotosPanel({ api }: { api: CardApi }) {
     setCommand((c) => (c.trim() ? `${c.trim().replace(/;$/, '')}; ${clause}` : clause));
   };
 
-  const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped', 'bgReplaced', 'looked'];
+  const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped', 'bgReplaced', 'looked', 'aiDone'];
 
   /** «Сделать это»: разбираем текст и выполняем по очереди (замена фона — пару секунд). */
   const doIt = async () => {
     if (!photos || !command.trim() || busy) return;
-    const cmds = parseCommands(command, count, selected);
-    setBusy(cmds.some((c) => c.swap || c.bgDesc) ? 'swap' : cmds.some((c) => c.look) ? 'look' : 'edit');
+    let cmds = parseCommands(command, count, selected);
+    if (cmds.some((c) => c.ai) && aiKey) {
+      // фото уходит в Google — спрашиваем один раз за сеанс
+      let agreed = false;
+      try {
+        agreed = sessionStorage.getItem('cardmaker.aiConsent') === '1';
+      } catch {
+        /* нет хранилища — спросим */
+      }
+      if (!agreed) {
+        agreed = confirm(t.ui.aiConfirm);
+        if (agreed)
+          try {
+            sessionStorage.setItem('cardmaker.aiConsent', '1');
+          } catch {
+            /* ок */
+          }
+      }
+      if (!agreed) cmds = cmds.map((c) => ({ ...c, ai: undefined }));
+    }
+    setBusy(cmds.some((c) => c.ai && aiKey) ? 'ai' : cmds.some((c) => c.swap || c.bgDesc) ? 'swap' : cmds.some((c) => c.look) ? 'look' : 'edit');
     try {
       const res = await runCommands(photos.imgs, cmds);
       if (res.log.some((l) => OK_KINDS.includes(l.kind))) setImgs(res.imgs);
       setLog(res.log);
+      // ИИ нужен, но не подключён (или ключ неверный) — сразу показываем, как подключить
+      if (res.log.some((l) => l.kind === 'aiNoKey' || (l.kind === 'aiError' && l.reason === 'key'))) setAiOpen(true);
       if (res.log.every((l) => OK_KINDS.includes(l.kind))) {
         setCommand('');
         setSelected([]);
@@ -174,6 +199,12 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         return [false, t.ui.peNoPart.replace('{part}', t.ui.lookParts[l.part]).replace('{p}', String(l.photo))];
       case 'lookUnknown':
         return [false, t.ui.peLookUnknown.replace('{part}', t.ui.lookParts[l.part])];
+      case 'aiDone':
+        return [true, t.ui.peAiDone.replace('{p}', String(l.photo)).replace('{c}', l.text)];
+      case 'aiNoKey':
+        return [false, t.ui.peAiNoKey.replace('{c}', l.text)];
+      case 'aiError':
+        return [false, t.ui.aiErrors[l.reason]];
       default:
         return [false, t.ui.peNotUnderstood.replace('{c}', l.text)];
     }
@@ -184,6 +215,8 @@ export function PhotosPanel({ api }: { api: CardApi }) {
     ['🏞️', t.ui.hintBgAsk],
     ['💇', t.ui.hintHair],
     ['👕', t.ui.hintClothes],
+    ['🤵', t.ui.hintAiClothes],
+    ['💈', t.ui.hintAiHair],
     ['⬛', t.ui.hintBw],
     ['🔄', t.ui.hintRotate],
     ['🪞', t.ui.hintFlip],
@@ -271,7 +304,15 @@ export function PhotosPanel({ api }: { api: CardApi }) {
             </div>
             <div className="pe-actions">
               <button className="big-action" onClick={doIt} disabled={!command.trim() || !!busy}>
-                {busy === 'swap' ? `⏳ ${t.ui.peSwapping}` : busy === 'look' ? `⏳ ${t.ui.peLooking}` : busy ? '⏳' : `✨ ${t.ui.peDoIt}`}
+                {busy === 'swap'
+                  ? `⏳ ${t.ui.peSwapping}`
+                  : busy === 'look'
+                    ? `⏳ ${t.ui.peLooking}`
+                    : busy === 'ai'
+                      ? `⏳ ${t.ui.peAiWorking}`
+                      : busy
+                        ? '⏳'
+                        : `✨ ${t.ui.peDoIt}`}
               </button>
               <button className="big-action secondary pe-undo" onClick={undo} disabled={!history.current.length}>
                 ↩ {t.ui.peUndo}
@@ -289,7 +330,60 @@ export function PhotosPanel({ api }: { api: CardApi }) {
                 })}
               </ul>
             )}
-            {log.some((l) => l.kind === 'notUnderstood') && <p className="hint">{t.ui.peExamples}</p>}
+            {log.some((l) => l.kind === 'notUnderstood' || l.kind === 'aiNoKey') && <p className="hint">{t.ui.peExamples}</p>}
+
+            {/* ИИ-редактор: одежда, причёска — что угодно своими словами */}
+            <details className="ai-box" open={aiOpen} onToggle={(e) => setAiOpen((e.target as HTMLDetailsElement).open)}>
+              <summary>
+                🤖 {t.ui.aiTitle} {aiKey ? `· ✅ ${t.ui.aiOn}` : ''}
+              </summary>
+              <p className="hint">{t.ui.aiAbout}</p>
+              {aiKey ? (
+                <button
+                  className="big-action secondary"
+                  onClick={() => {
+                    setAiKey(null);
+                    setAiKeyState(null);
+                  }}
+                >
+                  {t.ui.aiRemoveKey}
+                </button>
+              ) : (
+                <>
+                  <ol className="hint ai-steps">
+                    <li>
+                      {t.ui.aiStep1}{' '}
+                      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">
+                        aistudio.google.com/apikey
+                      </a>
+                    </li>
+                    <li>{t.ui.aiStep2}</li>
+                    <li>{t.ui.aiStep3}</li>
+                  </ol>
+                  <div className="ai-key-row">
+                    <input
+                      type="password"
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder={t.ui.aiKeyPlaceholder}
+                      value={keyDraft}
+                      onChange={(e) => setKeyDraft(e.target.value)}
+                    />
+                    <button
+                      className="big-action"
+                      disabled={keyDraft.trim().length < 20}
+                      onClick={() => {
+                        setAiKey(keyDraft);
+                        setAiKeyState(getAiKey());
+                        setKeyDraft('');
+                      }}
+                    >
+                      {t.ui.aiSaveKey}
+                    </button>
+                  </div>
+                </>
+              )}
+            </details>
 
             {!photosActive && (
               <button className="big-action secondary" onClick={() => api.setPhotos(photos)}>

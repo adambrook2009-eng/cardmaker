@@ -89,6 +89,22 @@ interface Dict {
     lookPatterns: Record<'stripes' | 'dots' | 'checks', string>;
     lookTones: Record<'lighter' | 'darker', string>;
     lookNewColor: string;
+    hintAiClothes: string;
+    hintAiHair: string;
+    peAiWorking: string;
+    peAiDone: string;
+    peAiNoKey: string;
+    aiErrors: Record<'key' | 'quota' | 'blocked' | 'network', string>;
+    aiConfirm: string;
+    aiTitle: string;
+    aiOn: string;
+    aiAbout: string;
+    aiStep1: string;
+    aiStep2: string;
+    aiStep3: string;
+    aiKeyPlaceholder: string;
+    aiSaveKey: string;
+    aiRemoveKey: string;
     peBgNotFound: string;
     peNetError: string;
     hintBw: string;
@@ -294,6 +310,29 @@ const ru: Dict = {
     lookPatterns: { stripes: 'полоски', dots: 'горошек', checks: 'клетка' },
     lookTones: { lighter: 'светлее', darker: 'темнее' },
     lookNewColor: 'новый цвет',
+    hintAiClothes: 'надень на него костюм',
+    hintAiHair: 'сделай короткую стрижку',
+    peAiWorking: 'ИИ меняет фото… (10–30 секунд)',
+    peAiDone: 'Фото {p}: {c}',
+    peAiNoKey: '«{c}» — такое (другая одежда, причёска и т. п.) делает ИИ-редактор. Подключите его ниже — это один раз',
+    aiErrors: {
+      key: 'Ключ ИИ не подошёл. Проверьте, что скопировали его полностью, и введите заново',
+      quota: 'Google не выполнил запрос: закончился лимит или не подключена оплата в Google AI Studio',
+      blocked: 'ИИ отказался менять это фото (правила Google). Попробуйте написать просьбу по-другому',
+      network: 'Не удалось связаться с ИИ. Проверьте интернет и попробуйте ещё раз',
+    },
+    aiConfirm:
+      'Чтобы выполнить просьбу, фото будет отправлено в Google Gemini (ИИ). Это платно для владельца ключа — примерно 3–5 центов за фото. Отправить?',
+    aiTitle: 'ИИ-редактор: одежда, причёска — что угодно',
+    aiOn: 'подключён',
+    aiAbout:
+      'Меняет фото так, как вы напишете: «1 надень на него костюм», «2 сделай длинные кудрявые волосы», «1 добавь очки». Работает через Google Gemini по вашему ключу: ключ хранится только на этом устройстве, фото отправляется в Google только после вашего согласия. Платно: примерно 3–5 центов за фото.',
+    aiStep1: 'Откройте',
+    aiStep2: 'Войдите в Google, нажмите «Create API key» и подключите оплату (Billing) — у моделей для картинок нет бесплатного тарифа',
+    aiStep3: 'Скопируйте ключ и вставьте сюда',
+    aiKeyPlaceholder: 'Ключ Google AI (AIza…)',
+    aiSaveKey: 'Подключить',
+    aiRemoveKey: 'Отключить ИИ и удалить ключ',
     peBgNotFound: 'Не нашёл фон «{d}». Попробуйте написать по-другому, например: море, горы, лес, город ночью, белый, размытый',
     peNetError: 'Не удалось найти фон в интернете. Проверьте подключение и попробуйте ещё раз',
     hintBw: 'чёрно-белое',
@@ -501,6 +540,28 @@ const he: Dict = {
     lookPatterns: { stripes: 'פסים', dots: 'נקודות', checks: 'משבצות' },
     lookTones: { lighter: 'בהיר יותר', darker: 'כהה יותר' },
     lookNewColor: 'צבע חדש',
+    hintAiClothes: 'תלביש לו חליפה',
+    hintAiHair: 'תספורת קצרה',
+    peAiWorking: 'הבינה המלאכותית משנה את התמונה… (10–30 שניות)',
+    peAiDone: 'תמונה {p}: {c}',
+    peAiNoKey: '«{c}» — את זה (בגדים אחרים, תסרוקת וכו׳) עושה עורך ה-AI. חברו אותו למטה — פעם אחת',
+    aiErrors: {
+      key: 'מפתח ה-AI לא מתאים. ודאו שהעתקתם אותו במלואו והזינו שוב',
+      quota: 'Google לא ביצעה את הבקשה: נגמרה המכסה או שלא הוגדר חיוב ב-Google AI Studio',
+      blocked: 'ה-AI סירב לשנות את התמונה (כללי Google). נסו לנסח אחרת',
+      network: 'אין חיבור ל-AI. בדקו את האינטרנט ונסו שוב',
+    },
+    aiConfirm: 'כדי לבצע את הבקשה, התמונה תישלח ל-Google Gemini (AI). זה בתשלום לבעל המפתח — בערך 3–5 סנט לתמונה. לשלוח?',
+    aiTitle: 'עורך AI: בגדים, תסרוקת — כל דבר',
+    aiOn: 'מחובר',
+    aiAbout:
+      'משנה את התמונה כפי שתכתבו: «1 תלביש לו חליפה», «2 שיער ארוך ומתולתל», «1 תוסיף משקפיים». עובד דרך Google Gemini עם המפתח שלכם: המפתח נשמר רק במכשיר הזה, והתמונה נשלחת ל-Google רק אחרי אישורכם. בתשלום: בערך 3–5 סנט לתמונה.',
+    aiStep1: 'פתחו את',
+    aiStep2: 'התחברו ל-Google, לחצו «Create API key» והגדירו חיוב (Billing) — למודלי תמונות אין מסלול חינמי',
+    aiStep3: 'העתיקו את המפתח והדביקו כאן',
+    aiKeyPlaceholder: 'מפתח Google AI (AIza…)',
+    aiSaveKey: 'לחבר',
+    aiRemoveKey: 'לנתק את ה-AI ולמחוק את המפתח',
     peBgNotFound: 'לא נמצא רקע «{d}». נסו לכתוב אחרת, לדוגמה: ים, הרים, יער, עיר בלילה, לבן, מטושטש',
     peNetError: 'לא ניתן למצוא רקע באינטרנט. בדקו את החיבור ונסו שוב',
     hintBw: 'שחור לבן',
@@ -707,6 +768,28 @@ const en: Dict = {
     lookPatterns: { stripes: 'stripes', dots: 'polka dots', checks: 'checks' },
     lookTones: { lighter: 'lighter', darker: 'darker' },
     lookNewColor: 'new color',
+    hintAiClothes: 'put a suit on him',
+    hintAiHair: 'give a short haircut',
+    peAiWorking: 'AI is editing the photo… (10–30 seconds)',
+    peAiDone: 'Photo {p}: {c}',
+    peAiNoKey: '“{c}” — this (other clothes, hairstyle, etc.) is done by the AI editor. Connect it below — once',
+    aiErrors: {
+      key: 'The AI key didn’t work. Make sure you copied all of it and enter it again',
+      quota: 'Google refused the request: the limit ran out or billing isn’t set up in Google AI Studio',
+      blocked: 'The AI refused to change this photo (Google’s rules). Try wording it differently',
+      network: 'Couldn’t reach the AI. Check your internet connection and try again',
+    },
+    aiConfirm: 'To do this, the photo will be sent to Google Gemini (AI). It’s paid by the key owner — about 3–5 cents per photo. Send it?',
+    aiTitle: 'AI editor: clothes, hairstyle — anything',
+    aiOn: 'connected',
+    aiAbout:
+      'Changes the photo the way you write it: “1 put a suit on him”, “2 long curly hair”, “1 add glasses”. Works via Google Gemini with your own key: the key is stored only on this device, and the photo is sent to Google only after you agree. Paid: about 3–5 cents per photo.',
+    aiStep1: 'Open',
+    aiStep2: 'Sign in to Google, click “Create API key” and set up billing — image models have no free tier',
+    aiStep3: 'Copy the key and paste it here',
+    aiKeyPlaceholder: 'Google AI key (AIza…)',
+    aiSaveKey: 'Connect',
+    aiRemoveKey: 'Disconnect AI and delete the key',
     peBgNotFound: 'Couldn’t find a “{d}” background. Try other words, e.g.: sea, mountains, forest, city at night, white, blurred',
     peNetError: 'Couldn’t search for a background online. Check your connection and try again',
     hintBw: 'black and white',

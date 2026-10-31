@@ -44,6 +44,8 @@ export interface PhotoCommand {
   bgDesc?: string;
   /** Волосы / одежда: перекрасить, узор, светлее-темнее. null — про волосы/одежду, но не поняли, что сделать. */
   look?: LookRequest | null;
+  /** Просьба для ИИ-редактора своими словами («надень на него костюм»), уже без номеров фото. */
+  ai?: string;
   amount: number; // «чуть» 0.5 … «сильно» 1.8
 }
 
@@ -140,6 +142,21 @@ function bgDescription(t: string): string {
     .join(' ');
 }
 
+/**
+ * Просьбы, которые перекраской не сделать: другая одежда, другая причёска, что-то добавить.
+ * Их выполняет ИИ-редактор (если пользователь подключил его).
+ */
+const AI_WORDS =
+  /(наден|надет|одень|оден|переод|стриж|постриг|причес|прическ|кудр|кудряв|локон|кос[уаы]|хвост|каре|лыс|бород|усы|очки|шляп|шапк|галстук|добав|дорисуй|нарисуй|сделай его|сделай ее|wear|put on|dress (him|her|them)|haircut|hairstyle|curl|braid|bald|beard|mustache|glasses|hat|tie|add |תלביש|תלבישי|הלבש|תספורת|תסרוקת|מתולתל|צמה|קרח|זקן|משקפיים|כובע|עניבה|תוסיף)/;
+
+/** «1 надень на него костюм» → «надень на него костюм» (номер фото модели не нужен). */
+const aiInstruction = (text: string) =>
+  text
+    .replace(new RegExp(PHOTO_WORD, 'gi'), ' ')
+    .replace(/(^|\s)(на|в|on|in|ב|ל)?\s*\d+([\s,.;:]|$)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 /* ---------- Понимание команд (ru / he / en) ---------- */
 
 /** Порядок важен: более конкретные выражения проверяются раньше общих. */
@@ -220,7 +237,12 @@ export function parseCommands(raw: string, count: number, selected: number[] = [
       const look = merge || swap || bgDesc || !mentionsLook(t) ? undefined : parseLook(t);
       // при замене фона слова вроде «поставь»/«убери» не должны превращаться в другие операции
       const ops = swap || bgDesc || look !== undefined ? [] : found.map((f) => f.op);
-      return { text, nums: finalNums, ops, merge, swap, bgDesc, look, amount };
+      // ИИ: другая одежда/причёска/«добавь…» — или просьба, которую мы иначе не поняли бы
+      const plain = !merge && !swap && !bgDesc;
+      // если мы сами поняли правку («1 рамка», «1 ярче») — ИИ не нужен (и не тратим деньги пользователя)
+      const wantsAi = plain && !ops.length && (look === null || look === undefined || AI_WORDS.test(t));
+      const ai = wantsAi ? aiInstruction(text) || undefined : undefined;
+      return { text, nums: finalNums, ops, merge, swap, bgDesc, look, ai, amount };
     });
 }
 
@@ -426,6 +448,9 @@ export type LogEntry =
   | { kind: 'looked'; nums: number[]; look: LookRequest }
   | { kind: 'noPart'; photo: number; part: BodyPart }
   | { kind: 'lookUnknown'; part: BodyPart }
+  | { kind: 'aiDone'; photo: number; text: string }
+  | { kind: 'aiNoKey'; text: string }
+  | { kind: 'aiError'; reason: 'key' | 'quota' | 'blocked' | 'network' }
   | { kind: 'netError' }
   | { kind: 'noPerson'; person: number }
   | { kind: 'modelError' }
@@ -507,6 +532,41 @@ export async function runCommands(start: HTMLCanvasElement[], cmds: PhotoCommand
         }
       }
       continue;
+    }
+    if (c.ai) {
+      const ai = await import('./aiEdit');
+      if (!ai.getAiKey()) {
+        // ИИ не подключён: простую перекраску сделаем сами, остальное — объясним, как подключить
+        if (!c.look) {
+          log.push({ kind: 'aiNoKey', text: c.text });
+          continue;
+        }
+      } else {
+        const nums = c.nums.length ? c.nums : imgs.length === 1 ? [1] : [];
+        if (!nums.length) {
+          log.push({ kind: 'noNumber', text: c.text });
+          continue;
+        }
+        const bad = nums.filter((n) => n < 1 || n > imgs.length);
+        if (bad.length) {
+          log.push({ kind: 'badNumber', nums: bad, count: imgs.length });
+          continue;
+        }
+        for (const n of nums) {
+          try {
+            imgs[n - 1] = await ai.aiEdit(imgs[n - 1], c.ai);
+            log.push({ kind: 'aiDone', photo: n, text: c.ai });
+          } catch (e) {
+            log.push({
+              kind: 'aiError',
+              reason:
+                e instanceof ai.AiKeyError ? 'key' : e instanceof ai.AiQuotaError ? 'quota' : e instanceof ai.AiBlockedError ? 'blocked' : 'network',
+            });
+            break;
+          }
+        }
+        continue;
+      }
     }
     if (c.look === null) {
       log.push({ kind: 'lookUnknown', part: mentionsLook(c.text.toLowerCase()) ?? 'hair' });
