@@ -108,6 +108,11 @@ interface Dict {
     aiKeyPlaceholder: string;
     aiSaveKey: string;
     aiRemoveKey: string;
+    pastePhoto: string;
+    pasteHint: string;
+    pasteNoImage: string;
+    pasteDenied: string;
+    pasteUnsupported: string;
     gmButton: string;
     gmPrompt: string;
     gmSentTitle: string;
@@ -352,6 +357,11 @@ const ru: Dict = {
     aiKeyPlaceholder: 'Ключ Google AI (AIza…)',
     aiSaveKey: 'Подключить',
     aiRemoveKey: 'Отключить ИИ и удалить ключ',
+    pastePhoto: 'Вставить из буфера обмена',
+    pasteHint: 'Скопировали картинку (например, в Gemini или на сайте)? Нажмите «Вставить» — или Ctrl+V на компьютере.',
+    pasteNoImage: 'В буфере обмена нет картинки. Сначала скопируйте фото (удерживайте его → «Копировать»), потом нажмите «Вставить».',
+    pasteDenied: 'Браузер не дал доступ к буферу обмена. Разрешите доступ, когда браузер спросит, или на компьютере нажмите Ctrl+V.',
+    pasteUnsupported: 'Этот браузер не умеет вставлять картинки кнопкой. На компьютере нажмите Ctrl+V, а на телефоне сохраните картинку и добавьте её через «＋».',
     gmButton: 'Сделать в Gemini (бесплатно, в вашем аккаунте Google)',
     gmPrompt: 'Измени это фото: {c}. Лицо, позу и фон оставь как есть, чтобы фото выглядело естественно.',
     gmSentTitle: 'Фото {p} — в Gemini. Что дальше:',
@@ -360,7 +370,7 @@ const ru: Dict = {
     gmStepPaste: 'Вставьте текст просьбы (он уже скопирован: удерживайте поле ввода → «Вставить» или Ctrl+V) и отправьте',
     gmStepType: 'Напишите в Gemini просьбу (текст ниже) и отправьте',
     gmStepSave: 'Сохраните готовую картинку из Gemini (на телефоне — удерживайте её → «Сохранить»)',
-    gmStepAdd: 'Вернитесь сюда и нажмите «＋ Добавить ещё фото» — новое фото появится в списке',
+    gmStepAdd: 'Вернитесь сюда и нажмите «＋ Добавить ещё фото» (или скопируйте картинку в Gemini и нажмите «📋 Вставить из буфера обмена») — новое фото появится в списке',
     gmCopyAgain: 'Скопировать текст ещё раз',
     gmClose: 'Закрыть',
     peBgNotFound: 'Не нашёл фон «{d}». Попробуйте написать по-другому, например: море, горы, лес, город ночью, белый, размытый',
@@ -596,6 +606,11 @@ const he: Dict = {
     aiKeyPlaceholder: 'מפתח Google AI (AIza…)',
     aiSaveKey: 'לחבר',
     aiRemoveKey: 'לנתק את ה-AI ולמחוק את המפתח',
+    pastePhoto: 'הדבקה מהלוח',
+    pasteHint: 'העתקתם תמונה (למשל ב-Gemini או באתר)? לחצו «הדבקה» — או Ctrl+V במחשב.',
+    pasteNoImage: 'אין תמונה בלוח. קודם העתיקו תמונה (לחיצה ארוכה → «העתק»), ואז לחצו «הדבקה».',
+    pasteDenied: 'הדפדפן לא נתן גישה ללוח. אשרו את הגישה כשהדפדפן ישאל, או במחשב לחצו Ctrl+V.',
+    pasteUnsupported: 'הדפדפן הזה לא יודע להדביק תמונות בכפתור. במחשב לחצו Ctrl+V, ובטלפון שמרו את התמונה והוסיפו אותה דרך «＋».',
     gmButton: 'לעשות ב-Gemini (בחינם, בחשבון Google שלכם)',
     gmPrompt: 'שנה את התמונה הזאת: {c}. השאר את הפנים, התנוחה והרקע כמו שהם, כדי שהתמונה תיראה טבעית.',
     gmSentTitle: 'תמונה {p} — ב-Gemini. מה הלאה:',
@@ -604,7 +619,7 @@ const he: Dict = {
     gmStepPaste: 'הדביקו את טקסט הבקשה (הוא כבר הועתק: לחיצה ארוכה על שדה ההקלדה → «הדבק» או Ctrl+V) ושלחו',
     gmStepType: 'כתבו ב-Gemini את הבקשה (הטקסט למטה) ושלחו',
     gmStepSave: 'שמרו את התמונה המוכנה מ-Gemini (בטלפון — לחיצה ארוכה → «שמור»)',
-    gmStepAdd: 'חזרו לכאן ולחצו «＋ הוספת תמונות» — התמונה החדשה תופיע ברשימה',
+    gmStepAdd: 'חזרו לכאן ולחצו «＋ הוספת תמונות» (או העתיקו את התמונה ב-Gemini ולחצו «📋 הדבקה מהלוח») — התמונה החדשה תופיע ברשימה',
     gmCopyAgain: 'להעתיק את הטקסט שוב',
     gmClose: 'סגירה',
     peBgNotFound: 'לא נמצא רקע «{d}». נסו לכתוב אחרת, לדוגמה: ים, הרים, יער, עיר בלילה, לבן, מטושטש',
@@ -839,6 +854,11 @@ const en: Dict = {
     aiKeyPlaceholder: 'Google AI key (AIza…)',
     aiSaveKey: 'Connect',
     aiRemoveKey: 'Disconnect AI and delete the key',
+    pastePhoto: 'Paste from clipboard',
+    pasteHint: 'Copied a picture (e.g. in Gemini or on a website)? Tap “Paste” — or press Ctrl+V on a computer.',
+    pasteNoImage: 'There’s no picture in the clipboard. Copy a photo first (long-press it → “Copy”), then tap “Paste”.',
+    pasteDenied: 'The browser didn’t allow clipboard access. Allow it when the browser asks, or press Ctrl+V on a computer.',
+    pasteUnsupported: 'This browser can’t paste pictures with a button. Press Ctrl+V on a computer; on a phone, save the picture and add it with “＋”.',
     gmButton: 'Do it in Gemini (free, in your Google account)',
     gmPrompt: 'Edit this photo: {c}. Keep the face, pose and background as they are, so the photo looks natural.',
     gmSentTitle: 'Photo {p} — to Gemini. Next:',
@@ -847,7 +867,7 @@ const en: Dict = {
     gmStepPaste: 'Paste the request (it’s already copied: long-press the input → “Paste”, or Ctrl+V) and send',
     gmStepType: 'Type the request in Gemini (text below) and send',
     gmStepSave: 'Save the finished picture from Gemini (on a phone — long-press it → “Save”)',
-    gmStepAdd: 'Come back here and tap “＋ Add more photos” — the new photo will appear in the list',
+    gmStepAdd: 'Come back here and tap “＋ Add more photos” (or copy the picture in Gemini and tap “📋 Paste from clipboard”) — the new photo will appear in the list',
     gmCopyAgain: 'Copy the text again',
     gmClose: 'Close',
     peBgNotFound: 'Couldn’t find a “{d}” background. Try other words, e.g.: sea, mountains, forest, city at night, white, blurred',

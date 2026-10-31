@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CardApi, PhotosBackground } from '../../state/useCard';
 import type { SlideTransition } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
@@ -77,7 +77,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
     api.setPhotos(imgs.length ? { ...(photos ?? one(imgs[0])), imgs } : null);
   };
 
-  const addFiles = async (files: FileList) => {
+  const addFiles = async (files: FileList | File[]) => {
     const list = [...files].filter((f) => f.type.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));
     const take = list.slice(0, Math.max(0, MAX_PHOTOS - count));
     const imgs: HTMLCanvasElement[] = [];
@@ -93,6 +93,42 @@ export function PhotosPanel({ api }: { api: CardApi }) {
     if (imgs.length) setImgs([...(photos?.imgs ?? []), ...imgs]);
     if (list.length > take.length) alert(t.ui.photosLimit.replace('{n}', String(MAX_PHOTOS)));
   };
+
+  /** Кнопка «Вставить из буфера обмена»: картинка, скопированная в другом приложении (например, из Gemini). */
+  const pasteFromClipboard = async () => {
+    if (!navigator.clipboard?.read) {
+      alert(t.ui.pasteUnsupported);
+      return;
+    }
+    try {
+      const files: File[] = [];
+      for (const item of await navigator.clipboard.read()) {
+        const type = item.types.find((x) => x.startsWith('image/'));
+        if (type) {
+          const blob = await item.getType(type);
+          files.push(new File([blob], `clipboard-${Date.now()}.${type.split('/')[1] || 'png'}`, { type }));
+        }
+      }
+      if (files.length) await addFiles(files);
+      else alert(t.ui.pasteNoImage);
+    } catch {
+      alert(t.ui.pasteDenied); // пользователь не разрешил доступ к буферу обмена
+    }
+  };
+
+  // Ctrl+V / «Вставить» в любом месте вкладки: если в буфере картинка — добавляем её как фото
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const files = [...(e.clipboardData?.files ?? [])].filter((f) => f.type.startsWith('image/'));
+      if (!files.length) return; // обычный текст (например, в поле команды) — не мешаем
+      e.preventDefault();
+      addFilesRef.current(files);
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, []);
 
   const toggle = (n: number) => setSelected((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n].sort((a, b) => a - b)));
 
@@ -285,6 +321,10 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         <button className="big-action" onClick={() => input.current?.click()} disabled={!!loading || count >= MAX_PHOTOS}>
           {loading ? `⏳ ${t.ui.photosLoading} ${loading}` : `＋ ${count ? t.ui.addPhotos : t.ui.uploadPhotos}`}
         </button>
+        <button className="big-action secondary paste-btn" onClick={pasteFromClipboard} disabled={!!loading || count >= MAX_PHOTOS}>
+          📋 {t.ui.pastePhoto}
+        </button>
+        <p className="hint">{t.ui.pasteHint}</p>
         <input
           ref={input}
           type="file"

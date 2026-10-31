@@ -272,7 +272,7 @@ h1, h3 { margin: 0; }
 .pe-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
 .pe-log li { padding: 8px 10px; border-radius: 10px; background: var(--surface); }
 .pe-log li.err { background: color-mix(in srgb, #f59e0b 15%, var(--surface)); }
-.gemini-btn { width: 100%; }
+.gemini-btn, .paste-btn { width: 100%; }
 .gemini-steps { border-radius: 14px; background: var(--surface); padding: 10px 12px; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
 .gemini-steps p { margin: 0; }
 .gemini-steps ol { margin: 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 3px; }
