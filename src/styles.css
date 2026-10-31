@@ -211,8 +211,10 @@ h1, h3 { margin: 0; }
 .send-bar .primary, .big-action { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
 
 .tools { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-.tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: none; }
-.tabs button { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 12px; color: var(--muted); border-bottom: 3px solid transparent; }
+/* Все вкладки всегда видны: не помещаются в строку — переносятся на вторую (без скрытой прокрутки) */
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); border-bottom: 1px solid var(--border); }
+.tabs button { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 4px; color: var(--muted); border-bottom: 3px solid transparent; }
+.tabs .tab-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab-icon { font-size: 22px; }
 .tab-label { font-size: 12px; font-weight: 700; }
