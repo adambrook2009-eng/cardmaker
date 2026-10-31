@@ -12,8 +12,10 @@ import { AnimationPanel } from './panels/AnimationPanel';
 import { MusicPanel, useMusicPlaying } from './panels/MusicPanel';
 import { musicPlayer } from '../engine/audio';
 import { EffectsPanel } from './panels/EffectsPanel';
+import { PhotosPanel } from './panels/PhotosPanel';
 
 const TABS = [
+  { id: 'photos', icon: '📷', Panel: PhotosPanel },
   { id: 'effects', icon: '🔥', Panel: EffectsPanel },
   { id: 'text', icon: '💬', Panel: TextPanel },
   { id: 'background', icon: '🖼️', Panel: BackgroundPanel },
@@ -28,7 +30,7 @@ type TabId = (typeof TABS)[number]['id'];
 
 export function Editor({ api }: { api: CardApi }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<TabId>('effects');
+  const [tab, setTab] = useState<TabId>('photos');
   const { card, selection } = api;
 
   // Нажали на текст/стикер на открытке — сразу открываем нужные инструменты

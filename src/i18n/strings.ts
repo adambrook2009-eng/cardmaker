@@ -8,7 +8,7 @@ interface Dict {
   tagline: string;
   chooseCategory: string;
   categories: Record<CategoryId, { name: string; hint: string }>;
-  tabs: { background: string; filters: string; stickers: string; frames: string; text: string; animation: string; music: string; effects: string };
+  tabs: { photos: string; background: string; filters: string; stickers: string; frames: string; text: string; animation: string; music: string; effects: string };
   tracks: Record<TrackId, string>;
   fx: Record<FxId, string>;
   looks: Record<LookId, string>;
@@ -163,7 +163,7 @@ const ru: Dict = {
     kind: { name: 'Доброе', hint: 'Котики, природа' },
     love: { name: 'Признание', hint: 'Любовь, благодарность' },
   },
-  tabs: { background: 'Фон', filters: 'Фильтры', stickers: 'Стикеры', frames: 'Рамки', text: 'Текст', animation: 'Анимация', music: 'Музыка', effects: 'Эффекты' },
+  tabs: { photos: 'Фото', background: 'Фон', filters: 'Фильтры', stickers: 'Стикеры', frames: 'Рамки', text: 'Текст', animation: 'Анимация', music: 'Музыка', effects: 'Эффекты' },
   fx: { none: 'Без эффекта', fireworks: 'Салют', aurora: 'Северное сияние', lensFlare: 'Блик объектива', goldDust: 'Золотая пыль', magic: 'Волшебство', starWarp: 'Гиперпрыжок', lightLeaks: 'Кинозасветка', balloons: 'Воздушные шары', bubbles: 'Мыльные пузыри', shootingStars: 'Падающие звёзды', lanterns: 'Небесные фонарики', disco: 'Диско', butterflies: 'Бабочки' },
   looks: { none: 'Обычная', glow: 'Свечение', cinema: 'Кино', dream: 'Мечта', neon: 'Неон', vintage: 'Старая плёнка' },
   cameras: { none: 'Статично', zoomIn: 'Наезд', zoomOut: 'Отъезд', pan: 'Панорама', float: 'Парение' },
@@ -345,7 +345,7 @@ const he: Dict = {
     kind: { name: 'חמוד', hint: 'חתולים, טבע' },
     love: { name: 'הוקרה', hint: 'אהבה, תודה' },
   },
-  tabs: { background: 'רקע', filters: 'פילטרים', stickers: 'מדבקות', frames: 'מסגרות', text: 'טקסט', animation: 'אנימציה', music: 'מוזיקה', effects: 'אפקטים' },
+  tabs: { photos: 'תמונות', background: 'רקע', filters: 'פילטרים', stickers: 'מדבקות', frames: 'מסגרות', text: 'טקסט', animation: 'אנימציה', music: 'מוזיקה', effects: 'אפקטים' },
   fx: { none: 'ללא אפקט', fireworks: 'זיקוקים', aurora: 'זוהר צפוני', lensFlare: 'הבזק עדשה', goldDust: 'אבק זהב', magic: 'קסם', starWarp: 'קפיצה להיפר', lightLeaks: 'דליפת אור', balloons: 'בלונים', bubbles: 'בועות סבון', shootingStars: 'כוכבים נופלים', lanterns: 'פנסי שמיים', disco: 'דיסקו', butterflies: 'פרפרים' },
   looks: { none: 'רגיל', glow: 'זוהר', cinema: 'קולנוע', dream: 'חלום', neon: 'ניאון', vintage: 'פילם ישן' },
   cameras: { none: 'סטטי', zoomIn: 'התקרבות', zoomOut: 'התרחקות', pan: 'פנורמה', float: 'ריחוף' },
@@ -526,7 +526,7 @@ const en: Dict = {
     kind: { name: 'Sweet', hint: 'Kittens, nature' },
     love: { name: 'Love & thanks', hint: 'Love, gratitude' },
   },
-  tabs: { background: 'Background', filters: 'Filters', stickers: 'Stickers', frames: 'Frames', text: 'Text', animation: 'Animation', music: 'Music', effects: 'Effects' },
+  tabs: { photos: 'Photos', background: 'Background', filters: 'Filters', stickers: 'Stickers', frames: 'Frames', text: 'Text', animation: 'Animation', music: 'Music', effects: 'Effects' },
   fx: { none: 'No effect', fireworks: 'Fireworks', aurora: 'Northern lights', lensFlare: 'Lens flare', goldDust: 'Gold dust', magic: 'Magic', starWarp: 'Hyperspace', lightLeaks: 'Light leaks', balloons: 'Balloons', bubbles: 'Soap bubbles', shootingStars: 'Shooting stars', lanterns: 'Sky lanterns', disco: 'Disco', butterflies: 'Butterflies' },
   looks: { none: 'Normal', glow: 'Glow', cinema: 'Cinema', dream: 'Dream', neon: 'Neon', vintage: 'Old film' },
   cameras: { none: 'Static', zoomIn: 'Zoom in', zoomOut: 'Zoom out', pan: 'Pan', float: 'Float' },
