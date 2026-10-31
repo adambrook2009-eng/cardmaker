@@ -1,7 +1,10 @@
 /**
  * ИИ-редактор: меняет на фото то, что написал пользователь («надень на него костюм», «сделай короткую стрижку»).
- * Работает через Google Gemini («Nano Banana») с ключом самого пользователя: ключ хранится только
- * на этом устройстве, фото отправляется в Google лишь после согласия. Это платно (~3–5 центов за картинку).
+ * Модель — Google Gemini («Nano Banana»). Два пути:
+ *  • бесплатно — через Puter.js: пользователь входит в свой бесплатный аккаунт Puter (месячный бесплатный лимит),
+ *    ключи не нужны;
+ *  • свой ключ Google — если пользователь его ввёл (платно, ~3–5 центов за картинку).
+ * Фото отправляется только после согласия пользователя.
  */
 
 const KEY_STORE = 'cardmaker.geminiKey';
@@ -15,6 +18,8 @@ export class AiKeyError extends Error {}
 export class AiQuotaError extends Error {}
 export class AiBlockedError extends Error {}
 export class AiNetworkError extends Error {}
+/** Пользователь закрыл окно входа в Puter. */
+export class AiCancelledError extends Error {}
 
 const store = {
   get: (k: string) => {
@@ -79,14 +84,92 @@ async function callModel(model: string, key: string, body: unknown, signal: Abor
   });
 }
 
+const promptFor = (instruction: string) =>
+  `Edit this photo as requested: "${instruction}". ` +
+  'Change only what is requested. Keep the same people (faces and identity), their pose, the framing, the background and the lighting. ' +
+  'The result must look like a real, natural photo.';
+
+/* ---------- Бесплатный путь: Puter.js ---------- */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Puter = any;
+const PUTER_SRC = 'https://js.puter.com/v2/';
+const PUTER_MODELS = ['gemini-nano-banana-2.1', 'gemini-3.1-flash-image'];
+let puterLoading: Promise<Puter> | null = null;
+
+/** Загрузить Puter.js (только когда понадобился ИИ — остальным пользователям он не грузится). */
+export function loadPuter(): Promise<Puter> {
+  const w = window as any;
+  if (w.puter) return Promise.resolve(w.puter);
+  if (!puterLoading) {
+    puterLoading = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = PUTER_SRC;
+      s.async = true;
+      s.onload = () => (w.puter ? resolve(w.puter) : reject(new AiNetworkError('puter')));
+      s.onerror = () => {
+        puterLoading = null;
+        s.remove();
+        reject(new AiNetworkError('puter'));
+      };
+      document.head.appendChild(s);
+    });
+  }
+  return puterLoading;
+}
+
+/** Картинка-ответ Puter → наш холст (через blob, чтобы холст не стал «закрытым» для сохранения). */
+async function imageToCanvas(img: HTMLImageElement): Promise<HTMLCanvasElement> {
+  let source: CanvasImageSource = img;
+  if (!img.src.startsWith('data:')) {
+    const blob = await (await fetch(img.src)).blob();
+    source = await createImageBitmap(blob);
+  } else if (!img.complete) await img.decode();
+  const c = document.createElement('canvas');
+  c.width = (source as HTMLImageElement).naturalWidth || (source as ImageBitmap).width;
+  c.height = (source as HTMLImageElement).naturalHeight || (source as ImageBitmap).height;
+  c.getContext('2d')!.drawImage(source, 0, 0);
+  return c;
+}
+
+async function puterEdit(photo: HTMLCanvasElement, instruction: string): Promise<HTMLCanvasElement> {
+  // если пользователь ещё не вошёл, Puter сам покажет окно «Continue» → вход или бесплатная регистрация
+  const puter = await loadPuter();
+  const data = toBase64(photo);
+  let lastErr: unknown = null;
+  for (const model of PUTER_MODELS) {
+    try {
+      const img: HTMLImageElement = await puter.ai.txt2img(promptFor(instruction), {
+        model,
+        input_image: data,
+        input_image_mime_type: 'image/jpeg',
+      });
+      try {
+        return await imageToCanvas(img);
+      } catch {
+        throw new AiNetworkError('result');
+      }
+    } catch (e: any) {
+      if (e instanceof AiNetworkError) throw e;
+      lastErr = e;
+      // ошибки Puter бывают { code, message } или { error: { code, message } }
+      const code = [e?.code, e?.errorCode, e?.message, e?.error?.code, e?.error?.message, typeof e === 'string' ? e : ''].filter(Boolean).join(' ');
+      if (/insufficient_funds|402|credit|balance/i.test(code)) throw new AiQuotaError(code);
+      if (/moderation|safety|blocked/i.test(code)) throw new AiBlockedError(code);
+      if (/too_many|429|rate/i.test(code)) throw new AiQuotaError(code);
+      if (/auth|sign|cancel/i.test(code)) throw new AiCancelledError(code);
+      if (!/model|not.?found|unknown|unsupported/i.test(code)) break; // другая модель тут не поможет
+    }
+  }
+  throw new AiNetworkError(String((lastErr as any)?.message ?? lastErr));
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 /** Изменить фото по словам пользователя. Возвращает новое фото. */
 export async function aiEdit(photo: HTMLCanvasElement, instruction: string): Promise<HTMLCanvasElement> {
   const key = getAiKey();
-  if (!key) throw new AiKeyError('no key');
-  const prompt =
-    `Edit this photo as requested: "${instruction}". ` +
-    'Change only what is requested. Keep the same people (faces and identity), their pose, the framing, the background and the lighting. ' +
-    'The result must look like a real, natural photo.';
+  if (!key) return puterEdit(photo, instruction); // без своего ключа — бесплатно через Puter
+  const prompt = promptFor(instruction);
   const body = {
     contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: toBase64(photo) } }] }],
     generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },

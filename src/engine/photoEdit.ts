@@ -449,8 +449,7 @@ export type LogEntry =
   | { kind: 'noPart'; photo: number; part: BodyPart }
   | { kind: 'lookUnknown'; part: BodyPart }
   | { kind: 'aiDone'; photo: number; text: string }
-  | { kind: 'aiNoKey'; text: string }
-  | { kind: 'aiError'; reason: 'key' | 'quota' | 'blocked' | 'network' }
+  | { kind: 'aiError'; reason: 'key' | 'quota' | 'blocked' | 'network' | 'cancelled' }
   | { kind: 'netError' }
   | { kind: 'noPerson'; person: number }
   | { kind: 'modelError' }
@@ -535,13 +534,7 @@ export async function runCommands(start: HTMLCanvasElement[], cmds: PhotoCommand
     }
     if (c.ai) {
       const ai = await import('./aiEdit');
-      if (!ai.getAiKey()) {
-        // ИИ не подключён: простую перекраску сделаем сами, остальное — объясним, как подключить
-        if (!c.look) {
-          log.push({ kind: 'aiNoKey', text: c.text });
-          continue;
-        }
-      } else {
+      {
         const nums = c.nums.length ? c.nums : imgs.length === 1 ? [1] : [];
         if (!nums.length) {
           log.push({ kind: 'noNumber', text: c.text });
@@ -560,7 +553,15 @@ export async function runCommands(start: HTMLCanvasElement[], cmds: PhotoCommand
             log.push({
               kind: 'aiError',
               reason:
-                e instanceof ai.AiKeyError ? 'key' : e instanceof ai.AiQuotaError ? 'quota' : e instanceof ai.AiBlockedError ? 'blocked' : 'network',
+                e instanceof ai.AiKeyError
+                  ? 'key'
+                  : e instanceof ai.AiQuotaError
+                    ? 'quota'
+                    : e instanceof ai.AiBlockedError
+                      ? 'blocked'
+                      : e instanceof ai.AiCancelledError
+                        ? 'cancelled'
+                        : 'network',
             });
             break;
           }

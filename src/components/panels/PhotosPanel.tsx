@@ -4,7 +4,7 @@ import type { SlideTransition } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { drawBackground } from '../../engine/renderer';
 import { parseCommands, runCommands, type LogEntry } from '../../engine/photoEdit';
-import { getAiKey, setAiKey } from '../../engine/aiEdit';
+import { getAiKey, loadPuter, setAiKey } from '../../engine/aiEdit';
 import { Thumb } from '../Thumb';
 
 /** Для слайд-шоу фото уменьшаем сильнее: 20 снимков в памяти телефона — это много. */
@@ -96,6 +96,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
           ? t.ui.bgTemplate.replace('{a}', nums || '1') // пользователь допишет или поменяет, какой фон хочет
           : `${nums ? nums + ' ' : ''}${word}`;
     setCommand((c) => (c.trim() ? `${c.trim().replace(/;$/, '')}; ${clause}` : clause));
+    if (!aiKey && (word === t.ui.hintAiClothes || word === t.ui.hintAiHair)) loadPuter().catch(() => {});
   };
 
   const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped', 'bgReplaced', 'looked', 'aiDone'];
@@ -104,7 +105,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
   const doIt = async () => {
     if (!photos || !command.trim() || busy) return;
     let cmds = parseCommands(command, count, selected);
-    if (cmds.some((c) => c.ai) && aiKey) {
+    if (cmds.some((c) => c.ai)) {
       // фото уходит в Google — спрашиваем один раз за сеанс
       let agreed = false;
       try {
@@ -113,7 +114,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         /* нет хранилища — спросим */
       }
       if (!agreed) {
-        agreed = confirm(t.ui.aiConfirm);
+        agreed = confirm(aiKey ? t.ui.aiConfirm : t.ui.aiConfirmFree);
         if (agreed)
           try {
             sessionStorage.setItem('cardmaker.aiConsent', '1');
@@ -123,13 +124,13 @@ export function PhotosPanel({ api }: { api: CardApi }) {
       }
       if (!agreed) cmds = cmds.map((c) => ({ ...c, ai: undefined }));
     }
-    setBusy(cmds.some((c) => c.ai && aiKey) ? 'ai' : cmds.some((c) => c.swap || c.bgDesc) ? 'swap' : cmds.some((c) => c.look) ? 'look' : 'edit');
+    setBusy(cmds.some((c) => c.ai) ? 'ai' : cmds.some((c) => c.swap || c.bgDesc) ? 'swap' : cmds.some((c) => c.look) ? 'look' : 'edit');
     try {
       const res = await runCommands(photos.imgs, cmds);
       if (res.log.some((l) => OK_KINDS.includes(l.kind))) setImgs(res.imgs);
       setLog(res.log);
       // ИИ нужен, но не подключён (или ключ неверный) — сразу показываем, как подключить
-      if (res.log.some((l) => l.kind === 'aiNoKey' || (l.kind === 'aiError' && l.reason === 'key'))) setAiOpen(true);
+      if (res.log.some((l) => l.kind === 'aiError' && l.reason === 'key')) setAiOpen(true);
       if (res.log.every((l) => OK_KINDS.includes(l.kind))) {
         setCommand('');
         setSelected([]);
@@ -201,8 +202,6 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         return [false, t.ui.peLookUnknown.replace('{part}', t.ui.lookParts[l.part])];
       case 'aiDone':
         return [true, t.ui.peAiDone.replace('{p}', String(l.photo)).replace('{c}', l.text)];
-      case 'aiNoKey':
-        return [false, t.ui.peAiNoKey.replace('{c}', l.text)];
       case 'aiError':
         return [false, t.ui.aiErrors[l.reason]];
       default:
@@ -287,7 +286,11 @@ export function PhotosPanel({ api }: { api: CardApi }) {
               dir="auto"
               value={command}
               placeholder={t.ui.pePlaceholder}
-              onChange={(e) => setCommand(e.target.value)}
+              onChange={(e) => {
+                setCommand(e.target.value);
+                // просьба для ИИ — заранее подгружаем Puter, чтобы окно входа открылось сразу по нажатию кнопки
+                if (!aiKey && parseCommands(e.target.value, count, selected).some((c) => c.ai)) loadPuter().catch(() => {});
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -330,14 +333,16 @@ export function PhotosPanel({ api }: { api: CardApi }) {
                 })}
               </ul>
             )}
-            {log.some((l) => l.kind === 'notUnderstood' || l.kind === 'aiNoKey') && <p className="hint">{t.ui.peExamples}</p>}
+            {log.some((l) => l.kind === 'notUnderstood') && <p className="hint">{t.ui.peExamples}</p>}
 
             {/* ИИ-редактор: одежда, причёска — что угодно своими словами */}
             <details className="ai-box" open={aiOpen} onToggle={(e) => setAiOpen((e.target as HTMLDetailsElement).open)}>
               <summary>
-                🤖 {t.ui.aiTitle} {aiKey ? `· ✅ ${t.ui.aiOn}` : ''}
+                🤖 {t.ui.aiTitle} · {aiKey ? `🔑 ${t.ui.aiOn}` : `🆓 ${t.ui.aiFree}`}
               </summary>
               <p className="hint">{t.ui.aiAbout}</p>
+              <p className="hint">{t.ui.aiFreeAbout}</p>
+              <h4 className="ai-subtitle">{t.ui.aiOwnKeyTitle}</h4>
               {aiKey ? (
                 <button
                   className="big-action secondary"

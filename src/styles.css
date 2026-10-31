@@ -275,6 +275,8 @@ h1, h3 { margin: 0; }
 .ai-box { border-radius: 14px; background: var(--surface); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .ai-box summary { font-weight: 800; cursor: pointer; }
 .ai-box[open] summary { margin-bottom: 6px; }
+.ai-box p.hint { margin: 0; }
+.ai-subtitle { margin: 6px 0 0; font-size: 14px; }
 .ai-box a { color: var(--accent); font-weight: 700; word-break: break-all; }
 .ai-steps { margin: 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 4px; }
 .ai-key-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }

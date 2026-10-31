@@ -93,9 +93,12 @@ interface Dict {
     hintAiHair: string;
     peAiWorking: string;
     peAiDone: string;
-    peAiNoKey: string;
-    aiErrors: Record<'key' | 'quota' | 'blocked' | 'network', string>;
+    aiErrors: Record<'key' | 'quota' | 'blocked' | 'network' | 'cancelled', string>;
     aiConfirm: string;
+    aiConfirmFree: string;
+    aiFree: string;
+    aiFreeAbout: string;
+    aiOwnKeyTitle: string;
     aiTitle: string;
     aiOn: string;
     aiAbout: string;
@@ -314,19 +317,24 @@ const ru: Dict = {
     hintAiHair: 'сделай короткую стрижку',
     peAiWorking: 'ИИ меняет фото… (10–30 секунд)',
     peAiDone: 'Фото {p}: {c}',
-    peAiNoKey: '«{c}» — такое (другая одежда, причёска и т. п.) делает ИИ-редактор. Подключите его ниже — это один раз',
     aiErrors: {
       key: 'Ключ ИИ не подошёл. Проверьте, что скопировали его полностью, и введите заново',
-      quota: 'Google не выполнил запрос: закончился лимит или не подключена оплата в Google AI Studio',
+      quota: 'Бесплатный лимит на этот месяц закончился (или слишком много запросов подряд). Попробуйте позже',
       blocked: 'ИИ отказался менять это фото (правила Google). Попробуйте написать просьбу по-другому',
       network: 'Не удалось связаться с ИИ. Проверьте интернет и попробуйте ещё раз',
+      cancelled: 'Вход в Puter отменён. Чтобы ИИ сработал бесплатно, нажмите «Сделать это» ещё раз, затем «Continue» — и войдите или зарегистрируйтесь',
     },
     aiConfirm:
       'Чтобы выполнить просьбу, фото будет отправлено в Google Gemini (ИИ). Это платно для владельца ключа — примерно 3–5 центов за фото. Отправить?',
+    aiConfirmFree:
+      'Чтобы выполнить просьбу, фото будет отправлено в ИИ (Google Gemini через сервис Puter). Это бесплатно; в первый раз нужно войти или зарегистрироваться в Puter. Отправить?',
+    aiFree: 'бесплатно',
+    aiFreeAbout:
+      'Бесплатно через сервис Puter: при первом использовании откроется окно — войдите или зарегистрируйтесь (бесплатно). Каждый месяц даётся бесплатный лимит. Фото отправляется только после вашего согласия.',
+    aiOwnKeyTitle: 'Или свой ключ Google (необязательно, платно)',
     aiTitle: 'ИИ-редактор: одежда, причёска — что угодно',
-    aiOn: 'подключён',
-    aiAbout:
-      'Меняет фото так, как вы напишете: «1 надень на него костюм», «2 сделай длинные кудрявые волосы», «1 добавь очки». Работает через Google Gemini по вашему ключу: ключ хранится только на этом устройстве, фото отправляется в Google только после вашего согласия. Платно: примерно 3–5 центов за фото.',
+    aiOn: 'свой ключ',
+    aiAbout: 'Меняет фото так, как вы напишете: «1 надень на него костюм», «2 сделай длинные кудрявые волосы», «1 добавь очки».',
     aiStep1: 'Откройте',
     aiStep2: 'Войдите в Google, нажмите «Create API key» и подключите оплату (Billing) — у моделей для картинок нет бесплатного тарифа',
     aiStep3: 'Скопируйте ключ и вставьте сюда',
@@ -544,18 +552,22 @@ const he: Dict = {
     hintAiHair: 'תספורת קצרה',
     peAiWorking: 'הבינה המלאכותית משנה את התמונה… (10–30 שניות)',
     peAiDone: 'תמונה {p}: {c}',
-    peAiNoKey: '«{c}» — את זה (בגדים אחרים, תסרוקת וכו׳) עושה עורך ה-AI. חברו אותו למטה — פעם אחת',
     aiErrors: {
       key: 'מפתח ה-AI לא מתאים. ודאו שהעתקתם אותו במלואו והזינו שוב',
-      quota: 'Google לא ביצעה את הבקשה: נגמרה המכסה או שלא הוגדר חיוב ב-Google AI Studio',
+      quota: 'המכסה החינמית לחודש הזה נגמרה (או שיש יותר מדי בקשות ברצף). נסו מאוחר יותר',
       blocked: 'ה-AI סירב לשנות את התמונה (כללי Google). נסו לנסח אחרת',
       network: 'אין חיבור ל-AI. בדקו את האינטרנט ונסו שוב',
+      cancelled: 'ההתחברות ל-Puter בוטלה. כדי שה-AI יעבוד בחינם, לחצו «לבצע» שוב, אחר כך «Continue» — והתחברו או הירשמו',
     },
     aiConfirm: 'כדי לבצע את הבקשה, התמונה תישלח ל-Google Gemini (AI). זה בתשלום לבעל המפתח — בערך 3–5 סנט לתמונה. לשלוח?',
+    aiConfirmFree: 'כדי לבצע את הבקשה, התמונה תישלח ל-AI (Google Gemini דרך השירות Puter). זה בחינם; בפעם הראשונה צריך להתחבר או להירשם ל-Puter. לשלוח?',
+    aiFree: 'בחינם',
+    aiFreeAbout:
+      'בחינם דרך השירות Puter: בשימוש הראשון ייפתח חלון — התחברו או הירשמו (בחינם). בכל חודש יש מכסה חינמית. התמונה נשלחת רק אחרי אישורכם.',
+    aiOwnKeyTitle: 'או מפתח Google משלכם (לא חובה, בתשלום)',
     aiTitle: 'עורך AI: בגדים, תסרוקת — כל דבר',
-    aiOn: 'מחובר',
-    aiAbout:
-      'משנה את התמונה כפי שתכתבו: «1 תלביש לו חליפה», «2 שיער ארוך ומתולתל», «1 תוסיף משקפיים». עובד דרך Google Gemini עם המפתח שלכם: המפתח נשמר רק במכשיר הזה, והתמונה נשלחת ל-Google רק אחרי אישורכם. בתשלום: בערך 3–5 סנט לתמונה.',
+    aiOn: 'מפתח משלכם',
+    aiAbout: 'משנה את התמונה כפי שתכתבו: «1 תלביש לו חליפה», «2 שיער ארוך ומתולתל», «1 תוסיף משקפיים».',
     aiStep1: 'פתחו את',
     aiStep2: 'התחברו ל-Google, לחצו «Create API key» והגדירו חיוב (Billing) — למודלי תמונות אין מסלול חינמי',
     aiStep3: 'העתיקו את המפתח והדביקו כאן',
@@ -772,18 +784,22 @@ const en: Dict = {
     hintAiHair: 'give a short haircut',
     peAiWorking: 'AI is editing the photo… (10–30 seconds)',
     peAiDone: 'Photo {p}: {c}',
-    peAiNoKey: '“{c}” — this (other clothes, hairstyle, etc.) is done by the AI editor. Connect it below — once',
     aiErrors: {
       key: 'The AI key didn’t work. Make sure you copied all of it and enter it again',
-      quota: 'Google refused the request: the limit ran out or billing isn’t set up in Google AI Studio',
+      quota: 'This month’s free limit has run out (or too many requests in a row). Try again later',
       blocked: 'The AI refused to change this photo (Google’s rules). Try wording it differently',
       network: 'Couldn’t reach the AI. Check your internet connection and try again',
+      cancelled: 'Puter sign-in was canceled. For the free AI, tap “Do it” again, then “Continue” — and sign in or sign up',
     },
     aiConfirm: 'To do this, the photo will be sent to Google Gemini (AI). It’s paid by the key owner — about 3–5 cents per photo. Send it?',
+    aiConfirmFree: 'To do this, the photo will be sent to an AI (Google Gemini via the Puter service). It’s free; the first time you need to sign in or sign up to Puter. Send it?',
+    aiFree: 'free',
+    aiFreeAbout:
+      'Free via the Puter service: the first time, a window opens — sign in or sign up (free). There’s a free allowance every month. The photo is sent only after you agree.',
+    aiOwnKeyTitle: 'Or your own Google key (optional, paid)',
     aiTitle: 'AI editor: clothes, hairstyle — anything',
-    aiOn: 'connected',
-    aiAbout:
-      'Changes the photo the way you write it: “1 put a suit on him”, “2 long curly hair”, “1 add glasses”. Works via Google Gemini with your own key: the key is stored only on this device, and the photo is sent to Google only after you agree. Paid: about 3–5 cents per photo.',
+    aiOn: 'own key',
+    aiAbout: 'Changes the photo the way you write it: “1 put a suit on him”, “2 long curly hair”, “1 add glasses”.',
     aiStep1: 'Open',
     aiStep2: 'Sign in to Google, click “Create API key” and set up billing — image models have no free tier',
     aiStep3: 'Copy the key and paste it here',
