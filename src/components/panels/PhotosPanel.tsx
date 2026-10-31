@@ -4,7 +4,7 @@ import type { SlideTransition } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { drawBackground } from '../../engine/renderer';
 import { parseCommands, runCommands, type LogEntry } from '../../engine/photoEdit';
-import { getAiKey, loadPuter, setAiKey } from '../../engine/aiEdit';
+import { getAiKey, setAiKey } from '../../engine/aiEdit';
 import { Thumb } from '../Thumb';
 
 /** Для слайд-шоу фото уменьшаем сильнее: 20 снимков в памяти телефона — это много. */
@@ -95,9 +95,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         : word === t.ui.hintBgAsk
           ? t.ui.bgTemplate.replace('{a}', nums || '1') // пользователь допишет или поменяет, какой фон хочет
           : `${nums ? nums + ' ' : ''}${word}`;
-    setCommand((c) => (c.trim() ? `${c.trim().replace(/;$/, '')}; ${clause}` : clause));
-    if (!aiKey && (word === t.ui.hintAiClothes || word === t.ui.hintAiHair)) loadPuter().catch(() => {});
-  };
+    setCommand((c) => (c.trim() ? `${c.trim().replace(/;$/, '')}; ${clause}` : clause));  };
 
   const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped', 'bgReplaced', 'looked', 'aiDone'];
 
@@ -286,11 +284,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
               dir="auto"
               value={command}
               placeholder={t.ui.pePlaceholder}
-              onChange={(e) => {
-                setCommand(e.target.value);
-                // просьба для ИИ — заранее подгружаем Puter, чтобы окно входа открылось сразу по нажатию кнопки
-                if (!aiKey && parseCommands(e.target.value, count, selected).some((c) => c.ai)) loadPuter().catch(() => {});
-              }}
+              onChange={(e) => setCommand(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();

@@ -1,9 +1,10 @@
 /**
  * ИИ-редактор: меняет на фото то, что написал пользователь («надень на него костюм», «сделай короткую стрижку»).
- * Модель — Google Gemini («Nano Banana»). Два пути:
- *  • бесплатно — через Puter.js: пользователь входит в свой бесплатный аккаунт Puter (месячный бесплатный лимит),
- *    ключи не нужны;
- *  • свой ключ Google — если пользователь его ввёл (платно, ~3–5 центов за картинку).
+ * Цепочка, чтобы бесплатных правок было как можно больше:
+ *  1) Hugging Face — нейросеть FLUX.1 Kontext (Black Forest Labs) в бесплатном Space: без регистрации,
+ *     у каждого пользователя свой дневной лимит GPU;
+ *  2) дневной лимит кончился — Puter.js (Google Gemini «Nano Banana»): бесплатный аккаунт Puter, месячный лимит;
+ *  3) если пользователь ввёл свой ключ Google — сразу Gemini по ключу (платно, ~3–5 центов за картинку).
  * Фото отправляется только после согласия пользователя.
  */
 
@@ -89,7 +90,92 @@ const promptFor = (instruction: string) =>
   'Change only what is requested. Keep the same people (faces and identity), their pose, the framing, the background and the lighting. ' +
   'The result must look like a real, natural photo.';
 
-/* ---------- Бесплатный путь: Puter.js ---------- */
+/* ---------- Перевод просьбы на английский (FLUX понимает только английский) ---------- */
+
+async function toEnglish(text: string): Promise<string> {
+  if (!/[^\x00-\x7f]/.test(text)) return text; // уже по-английски
+  const src = /[֐-׿]/.test(text) ? 'he' : /[Ѐ-ӿ]/.test(text) ? 'ru' : 'auto';
+  const tries: (() => Promise<string>)[] = [
+    async () => {
+      const r = await fetch(`https://api.mymemory.translated.net/get?${new URLSearchParams({ q: text, langpair: `${src === 'auto' ? 'ru' : src}|en` })}`);
+      const t = (await r.json())?.responseData?.translatedText as string | undefined;
+      if (!r.ok || !t || /MYMEMORY WARNING|QUERY LENGTH/i.test(t)) throw new Error('mymemory');
+      return t;
+    },
+    async () => {
+      const r = await fetch(`https://translate.googleapis.com/translate_a/single?${new URLSearchParams({ client: 'gtx', sl: src, tl: 'en', dt: 't', q: text })}`);
+      const j = await r.json();
+      const t = (j?.[0] ?? []).map((x: [string]) => x[0]).join('');
+      if (!t) throw new Error('gtx');
+      return t;
+    },
+  ];
+  for (const f of tries) {
+    try {
+      return await f();
+    } catch {
+      /* следующий переводчик */
+    }
+  }
+  return text; // переводчики недоступны — отправим как есть
+}
+
+/* ---------- Бесплатно №1: Hugging Face (FLUX.1 Kontext) ---------- */
+
+const HF_SPACE = 'https://black-forest-labs-flux-1-kontext-dev.hf.space';
+/** Дневной лимит GPU на Hugging Face кончился (или Space недоступен) — переходим к Puter. */
+class HfUnavailable extends Error {}
+
+async function hfEdit(photo: HTMLCanvasElement, instruction: string, signal: AbortSignal): Promise<HTMLCanvasElement> {
+  const en = await toEnglish(instruction);
+  const prompt = `${en}. Keep the person's face, identity, pose, and the background unchanged. Realistic photo.`;
+  const small = document.createElement('canvas');
+  const k = Math.min(1, MAX_SIDE / Math.max(photo.width, photo.height));
+  small.width = Math.round(photo.width * k);
+  small.height = Math.round(photo.height * k);
+  small.getContext('2d')!.drawImage(photo, 0, 0, small.width, small.height);
+  const blob = await new Promise<Blob | null>((r) => small.toBlob(r, 'image/jpeg', 0.92));
+  if (!blob) throw new HfUnavailable('blob');
+  try {
+    // 1) загрузить фото в Space
+    const fd = new FormData();
+    fd.append('files', blob, 'photo.jpg');
+    const up = await fetch(`${HF_SPACE}/gradio_api/upload`, { method: 'POST', body: fd, signal });
+    if (!up.ok) throw new HfUnavailable(`upload ${up.status}`);
+    const [path] = (await up.json()) as string[];
+    const file = { path, meta: { _type: 'gradio.FileData' }, orig_name: 'photo.jpg', mime_type: 'image/jpeg' };
+    // 2) поставить задачу: фото, просьба, seed, случайный seed, guidance, шаги
+    const start = await fetch(`${HF_SPACE}/gradio_api/call/infer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: [file, prompt, 0, true, 2.5, 28] }),
+      signal,
+    });
+    if (!start.ok) throw new HfUnavailable(`call ${start.status}`);
+    const { event_id } = await start.json();
+    // 3) дождаться результата (ответ приходит потоком событий; ждём «complete» или «error»)
+    const sse = await (await fetch(`${HF_SPACE}/gradio_api/call/infer/${event_id}`, { signal })).text();
+    const done = /event: complete\ndata: (.*)/.exec(sse);
+    if (!done) {
+      const err = /event: error\ndata: (.*)/.exec(sse)?.[1] ?? '';
+      if (/nsfw|safety|inappropriate/i.test(err)) throw new AiBlockedError(err);
+      throw new HfUnavailable(err || 'no result'); // чаще всего — кончился дневной лимит GPU
+    }
+    const url = JSON.parse(done[1])?.[0]?.url as string | undefined;
+    if (!url) throw new HfUnavailable('no url');
+    const bmp = await createImageBitmap(await (await fetch(url, { signal })).blob());
+    const out = document.createElement('canvas');
+    out.width = bmp.width;
+    out.height = bmp.height;
+    out.getContext('2d')!.drawImage(bmp, 0, 0);
+    return out;
+  } catch (e) {
+    if (e instanceof AiBlockedError || e instanceof HfUnavailable) throw e;
+    throw new HfUnavailable(String(e));
+  }
+}
+
+/* ---------- Бесплатно №2: Puter.js ---------- */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Puter = any;
@@ -168,7 +254,19 @@ async function puterEdit(photo: HTMLCanvasElement, instruction: string): Promise
 /** Изменить фото по словам пользователя. Возвращает новое фото. */
 export async function aiEdit(photo: HTMLCanvasElement, instruction: string): Promise<HTMLCanvasElement> {
   const key = getAiKey();
-  if (!key) return puterEdit(photo, instruction); // без своего ключа — бесплатно через Puter
+  if (!key) {
+    // без своего ключа: сначала Hugging Face (без регистрации), если лимит кончился — Puter
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 240000); // очередь на бесплатный GPU бывает длинной
+    try {
+      return await hfEdit(photo, instruction, ctl.signal);
+    } catch (e) {
+      if (e instanceof AiBlockedError) throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+    return puterEdit(photo, instruction);
+  }
   const prompt = promptFor(instruction);
   const body = {
     contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: toBase64(photo) } }] }],

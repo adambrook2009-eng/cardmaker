@@ -315,7 +315,7 @@ const ru: Dict = {
     lookNewColor: 'новый цвет',
     hintAiClothes: 'надень на него костюм',
     hintAiHair: 'сделай короткую стрижку',
-    peAiWorking: 'ИИ меняет фото… (10–30 секунд)',
+    peAiWorking: 'ИИ меняет фото… (обычно 30–60 секунд)',
     peAiDone: 'Фото {p}: {c}',
     aiErrors: {
       key: 'Ключ ИИ не подошёл. Проверьте, что скопировали его полностью, и введите заново',
@@ -327,10 +327,10 @@ const ru: Dict = {
     aiConfirm:
       'Чтобы выполнить просьбу, фото будет отправлено в Google Gemini (ИИ). Это платно для владельца ключа — примерно 3–5 центов за фото. Отправить?',
     aiConfirmFree:
-      'Чтобы выполнить просьбу, фото будет отправлено в ИИ (Google Gemini через сервис Puter). Это бесплатно; в первый раз нужно войти или зарегистрироваться в Puter. Отправить?',
+      'Чтобы выполнить просьбу, фото будет отправлено в бесплатный ИИ (Hugging Face, а если дневной лимит исчерпан — Puter). Отправить?',
     aiFree: 'бесплатно',
     aiFreeAbout:
-      'Бесплатно через сервис Puter: при первом использовании откроется окно — войдите или зарегистрируйтесь (бесплатно). Каждый месяц даётся бесплатный лимит. Фото отправляется только после вашего согласия.',
+      'Бесплатно и без регистрации — через Hugging Face (нейросеть FLUX Kontext): каждый день даётся бесплатный лимит, примерно несколько фото. Когда он закончится, программа перейдёт на запасной бесплатный сервис Puter — там нужно один раз войти или зарегистрироваться (тоже бесплатно, лимит на месяц). Фото отправляется только после вашего согласия.',
     aiOwnKeyTitle: 'Или свой ключ Google (необязательно, платно)',
     aiTitle: 'ИИ-редактор: одежда, причёска — что угодно',
     aiOn: 'свой ключ',
@@ -550,7 +550,7 @@ const he: Dict = {
     lookNewColor: 'צבע חדש',
     hintAiClothes: 'תלביש לו חליפה',
     hintAiHair: 'תספורת קצרה',
-    peAiWorking: 'הבינה המלאכותית משנה את התמונה… (10–30 שניות)',
+    peAiWorking: 'הבינה המלאכותית משנה את התמונה… (בדרך כלל 30–60 שניות)',
     peAiDone: 'תמונה {p}: {c}',
     aiErrors: {
       key: 'מפתח ה-AI לא מתאים. ודאו שהעתקתם אותו במלואו והזינו שוב',
@@ -560,10 +560,10 @@ const he: Dict = {
       cancelled: 'ההתחברות ל-Puter בוטלה. כדי שה-AI יעבוד בחינם, לחצו «לבצע» שוב, אחר כך «Continue» — והתחברו או הירשמו',
     },
     aiConfirm: 'כדי לבצע את הבקשה, התמונה תישלח ל-Google Gemini (AI). זה בתשלום לבעל המפתח — בערך 3–5 סנט לתמונה. לשלוח?',
-    aiConfirmFree: 'כדי לבצע את הבקשה, התמונה תישלח ל-AI (Google Gemini דרך השירות Puter). זה בחינם; בפעם הראשונה צריך להתחבר או להירשם ל-Puter. לשלוח?',
+    aiConfirmFree: 'כדי לבצע את הבקשה, התמונה תישלח ל-AI חינמי (Hugging Face, ואם המכסה היומית נגמרה — Puter). לשלוח?',
     aiFree: 'בחינם',
     aiFreeAbout:
-      'בחינם דרך השירות Puter: בשימוש הראשון ייפתח חלון — התחברו או הירשמו (בחינם). בכל חודש יש מכסה חינמית. התמונה נשלחת רק אחרי אישורכם.',
+      'בחינם וללא הרשמה — דרך Hugging Face (רשת FLUX Kontext): בכל יום יש מכסה חינמית של כמה תמונות. כשהיא נגמרת, התוכנה עוברת לשירות החינמי הנוסף Puter — שם צריך להתחבר או להירשם פעם אחת (גם בחינם, מכסה חודשית). התמונה נשלחת רק אחרי אישורכם.',
     aiOwnKeyTitle: 'או מפתח Google משלכם (לא חובה, בתשלום)',
     aiTitle: 'עורך AI: בגדים, תסרוקת — כל דבר',
     aiOn: 'מפתח משלכם',
@@ -782,7 +782,7 @@ const en: Dict = {
     lookNewColor: 'new color',
     hintAiClothes: 'put a suit on him',
     hintAiHair: 'give a short haircut',
-    peAiWorking: 'AI is editing the photo… (10–30 seconds)',
+    peAiWorking: 'AI is editing the photo… (usually 30–60 seconds)',
     peAiDone: 'Photo {p}: {c}',
     aiErrors: {
       key: 'The AI key didn’t work. Make sure you copied all of it and enter it again',
@@ -792,10 +792,10 @@ const en: Dict = {
       cancelled: 'Puter sign-in was canceled. For the free AI, tap “Do it” again, then “Continue” — and sign in or sign up',
     },
     aiConfirm: 'To do this, the photo will be sent to Google Gemini (AI). It’s paid by the key owner — about 3–5 cents per photo. Send it?',
-    aiConfirmFree: 'To do this, the photo will be sent to an AI (Google Gemini via the Puter service). It’s free; the first time you need to sign in or sign up to Puter. Send it?',
+    aiConfirmFree: 'To do this, the photo will be sent to a free AI (Hugging Face, or Puter if the daily limit is used up). Send it?',
     aiFree: 'free',
     aiFreeAbout:
-      'Free via the Puter service: the first time, a window opens — sign in or sign up (free). There’s a free allowance every month. The photo is sent only after you agree.',
+      'Free and without sign-up — via Hugging Face (the FLUX Kontext model): there’s a free daily limit of a few photos. When it runs out, the app switches to the backup free service Puter — there you sign in or sign up once (also free, monthly limit). The photo is sent only after you agree.',
     aiOwnKeyTitle: 'Or your own Google key (optional, paid)',
     aiTitle: 'AI editor: clothes, hairstyle — anything',
     aiOn: 'own key',
