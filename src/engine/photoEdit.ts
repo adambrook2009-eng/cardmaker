@@ -157,6 +157,19 @@ const aiInstruction = (text: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/**
+ * Для кнопки «Сделать в Gemini»: какое фото отправить и какой текст вставить в Gemini.
+ * «1 надень на него костюм» → { photo: 1, text: 'надень на него костюм' }.
+ */
+export function geminiRequest(raw: string, count: number, selected: number[] = []): { photo: number; text: string } | null {
+  const first = raw.split(/[;\n]+/).map((s) => s.trim()).find(Boolean);
+  if (!first || !count) return null;
+  const nums = [...wordsToNumbers(first.toLowerCase().replace(/ё/g, 'е')).matchAll(/\d+/g)].map((m) => +m[0]);
+  const photo = nums.find((n) => n >= 1 && n <= count) ?? selected[0] ?? 1;
+  const text = aiInstruction(first);
+  return text ? { photo: Math.min(photo, count), text } : null;
+}
+
 /* ---------- Понимание команд (ru / he / en) ---------- */
 
 /** Порядок важен: более конкретные выражения проверяются раньше общих. */

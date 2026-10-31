@@ -108,6 +108,17 @@ interface Dict {
     aiKeyPlaceholder: string;
     aiSaveKey: string;
     aiRemoveKey: string;
+    gmButton: string;
+    gmPrompt: string;
+    gmSentTitle: string;
+    gmStepShared: string;
+    gmStepDesktop: string;
+    gmStepPaste: string;
+    gmStepType: string;
+    gmStepSave: string;
+    gmStepAdd: string;
+    gmCopyAgain: string;
+    gmClose: string;
     peBgNotFound: string;
     peNetError: string;
     hintBw: string;
@@ -341,6 +352,17 @@ const ru: Dict = {
     aiKeyPlaceholder: 'Ключ Google AI (AIza…)',
     aiSaveKey: 'Подключить',
     aiRemoveKey: 'Отключить ИИ и удалить ключ',
+    gmButton: 'Сделать в Gemini (бесплатно, в вашем аккаунте Google)',
+    gmPrompt: 'Измени это фото: {c}. Лицо, позу и фон оставь как есть, чтобы фото выглядело естественно.',
+    gmSentTitle: 'Фото {p} — в Gemini. Что дальше:',
+    gmStepShared: 'В списке «Поделиться» выберите приложение Gemini',
+    gmStepDesktop: 'Открылся сайт Gemini, а фото сохранилось в «Загрузки». Прикрепите его в Gemini (значок «＋» или перетащите)',
+    gmStepPaste: 'Вставьте текст просьбы (он уже скопирован: удерживайте поле ввода → «Вставить» или Ctrl+V) и отправьте',
+    gmStepType: 'Напишите в Gemini просьбу (текст ниже) и отправьте',
+    gmStepSave: 'Сохраните готовую картинку из Gemini (на телефоне — удерживайте её → «Сохранить»)',
+    gmStepAdd: 'Вернитесь сюда и нажмите «＋ Добавить ещё фото» — новое фото появится в списке',
+    gmCopyAgain: 'Скопировать текст ещё раз',
+    gmClose: 'Закрыть',
     peBgNotFound: 'Не нашёл фон «{d}». Попробуйте написать по-другому, например: море, горы, лес, город ночью, белый, размытый',
     peNetError: 'Не удалось найти фон в интернете. Проверьте подключение и попробуйте ещё раз',
     hintBw: 'чёрно-белое',
@@ -574,6 +596,17 @@ const he: Dict = {
     aiKeyPlaceholder: 'מפתח Google AI (AIza…)',
     aiSaveKey: 'לחבר',
     aiRemoveKey: 'לנתק את ה-AI ולמחוק את המפתח',
+    gmButton: 'לעשות ב-Gemini (בחינם, בחשבון Google שלכם)',
+    gmPrompt: 'שנה את התמונה הזאת: {c}. השאר את הפנים, התנוחה והרקע כמו שהם, כדי שהתמונה תיראה טבעית.',
+    gmSentTitle: 'תמונה {p} — ב-Gemini. מה הלאה:',
+    gmStepShared: 'ברשימת «שיתוף» בחרו באפליקציית Gemini',
+    gmStepDesktop: 'אתר Gemini נפתח, והתמונה נשמרה ב«הורדות». צרפו אותה ב-Gemini (סמל «＋» או גרירה)',
+    gmStepPaste: 'הדביקו את טקסט הבקשה (הוא כבר הועתק: לחיצה ארוכה על שדה ההקלדה → «הדבק» או Ctrl+V) ושלחו',
+    gmStepType: 'כתבו ב-Gemini את הבקשה (הטקסט למטה) ושלחו',
+    gmStepSave: 'שמרו את התמונה המוכנה מ-Gemini (בטלפון — לחיצה ארוכה → «שמור»)',
+    gmStepAdd: 'חזרו לכאן ולחצו «＋ הוספת תמונות» — התמונה החדשה תופיע ברשימה',
+    gmCopyAgain: 'להעתיק את הטקסט שוב',
+    gmClose: 'סגירה',
     peBgNotFound: 'לא נמצא רקע «{d}». נסו לכתוב אחרת, לדוגמה: ים, הרים, יער, עיר בלילה, לבן, מטושטש',
     peNetError: 'לא ניתן למצוא רקע באינטרנט. בדקו את החיבור ונסו שוב',
     hintBw: 'שחור לבן',
@@ -806,6 +839,17 @@ const en: Dict = {
     aiKeyPlaceholder: 'Google AI key (AIza…)',
     aiSaveKey: 'Connect',
     aiRemoveKey: 'Disconnect AI and delete the key',
+    gmButton: 'Do it in Gemini (free, in your Google account)',
+    gmPrompt: 'Edit this photo: {c}. Keep the face, pose and background as they are, so the photo looks natural.',
+    gmSentTitle: 'Photo {p} — to Gemini. Next:',
+    gmStepShared: 'In the “Share” list, choose the Gemini app',
+    gmStepDesktop: 'The Gemini site opened and the photo was saved to Downloads. Attach it in Gemini (the “＋” icon or drag and drop)',
+    gmStepPaste: 'Paste the request (it’s already copied: long-press the input → “Paste”, or Ctrl+V) and send',
+    gmStepType: 'Type the request in Gemini (text below) and send',
+    gmStepSave: 'Save the finished picture from Gemini (on a phone — long-press it → “Save”)',
+    gmStepAdd: 'Come back here and tap “＋ Add more photos” — the new photo will appear in the list',
+    gmCopyAgain: 'Copy the text again',
+    gmClose: 'Close',
     peBgNotFound: 'Couldn’t find a “{d}” background. Try other words, e.g.: sea, mountains, forest, city at night, white, blurred',
     peNetError: 'Couldn’t search for a background online. Check your connection and try again',
     hintBw: 'black and white',

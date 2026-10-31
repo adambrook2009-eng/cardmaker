@@ -3,7 +3,7 @@ import type { CardApi, PhotosBackground } from '../../state/useCard';
 import type { SlideTransition } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { drawBackground } from '../../engine/renderer';
-import { parseCommands, runCommands, type LogEntry } from '../../engine/photoEdit';
+import { geminiRequest, parseCommands, runCommands, type LogEntry } from '../../engine/photoEdit';
 import { getAiKey, setAiKey } from '../../engine/aiEdit';
 import { Thumb } from '../Thumb';
 
@@ -39,6 +39,16 @@ function loadPhoto(file: File): Promise<HTMLCanvasElement> {
   });
 }
 
+/** Скопировать текст в буфер обмена; true — получилось. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const one = (img: HTMLCanvasElement): PhotosBackground => ({ kind: 'photos', imgs: [img], slideSec: 5, transition: 'fade' });
 
 /** Вкладка «Фото»: добавить, выбрать, изменить и объединить свои фото. */
@@ -53,6 +63,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
   const [aiKey, setAiKeyState] = useState(() => getAiKey());
   const [aiOpen, setAiOpen] = useState(false);
   const [keyDraft, setKeyDraft] = useState('');
+  const [gemini, setGemini] = useState<{ photo: number; prompt: string; copied: boolean; shared: boolean } | null>(null);
   const history = useRef<HTMLCanvasElement[][]>([]); // для «Отменить»
   const bg = api.card.background;
   // свои фото: текущие или сохранённые (если сейчас выбран готовый фон)
@@ -136,6 +147,45 @@ export function PhotosPanel({ api }: { api: CardApi }) {
     } finally {
       setBusy(null);
     }
+  };
+
+  /**
+   * «Сделать в Gemini»: бесплатно через приложение/сайт Gemini самого пользователя.
+   * Копируем просьбу в буфер обмена и передаём фото: на телефоне — окно «Поделиться» (выбрать Gemini),
+   * на компьютере — сохраняем фото и открываем gemini.google.com. Результат пользователь добавит обратно сам.
+   * Всё — сразу в обработчике нажатия: иначе браузер не разрешит «Поделиться» и новое окно.
+   */
+  const sendToGemini = async () => {
+    if (!photos) return;
+    const req = geminiRequest(command, count, selected);
+    if (!req) return;
+    const prompt = t.ui.gmPrompt.replace('{c}', req.text);
+    const img = photos.imgs[req.photo - 1];
+    // «Поделиться» — только на телефонах/планшетах (там есть приложение Gemini); на компьютере — сайт Gemini
+    const touch = matchMedia('(pointer: coarse)').matches;
+    const canShareFiles =
+      touch && typeof navigator.canShare === 'function' && navigator.canShare({ files: [new File([], 'x.jpg', { type: 'image/jpeg' })] });
+    // компьютер: окно открываем сразу, пока действует нажатие
+    if (!canShareFiles) window.open('https://gemini.google.com/app', '_blank', 'noopener');
+    const copied = await copyText(prompt);
+    let shared = false;
+    if (canShareFiles) {
+      const blob = await new Promise<Blob | null>((r) => img.toBlob(r, 'image/jpeg', 0.92));
+      if (blob) {
+        try {
+          await navigator.share({ files: [new File([blob], `photo-${req.photo}.jpg`, { type: 'image/jpeg' })], text: prompt });
+          shared = true;
+        } catch {
+          /* пользователь закрыл окно «Поделиться» — покажем шаги, можно повторить */
+        }
+      }
+    } else {
+      const a = document.createElement('a');
+      a.href = img.toDataURL('image/jpeg', 0.92);
+      a.download = `photo-${req.photo}.jpg`;
+      a.click();
+    }
+    setGemini({ photo: req.photo, prompt, copied, shared });
   };
 
   const undo = () => {
@@ -315,6 +365,33 @@ export function PhotosPanel({ api }: { api: CardApi }) {
                 ↩ {t.ui.peUndo}
               </button>
             </div>
+            <button className="big-action secondary gemini-btn" onClick={sendToGemini} disabled={!command.trim() || !!busy}>
+              🔷 {t.ui.gmButton}
+            </button>
+            {gemini && (
+              <div className="gemini-steps">
+                <p>
+                  <b>{t.ui.gmSentTitle.replace('{p}', String(gemini.photo))}</b>
+                </p>
+                <ol>
+                  <li>{gemini.shared ? t.ui.gmStepShared : t.ui.gmStepDesktop}</li>
+                  <li>{gemini.copied ? t.ui.gmStepPaste : t.ui.gmStepType}</li>
+                  <li>{t.ui.gmStepSave}</li>
+                  <li>{t.ui.gmStepAdd}</li>
+                </ol>
+                <p className="gemini-text" dir="auto">
+                  «{gemini.prompt}»
+                </p>
+                <div className="chips">
+                  <button className="chip" onClick={() => copyText(gemini.prompt).then((ok) => ok && setGemini({ ...gemini, copied: true }))}>
+                    📋 {t.ui.gmCopyAgain}
+                  </button>
+                  <button className="chip" onClick={() => setGemini(null)}>
+                    ✕ {t.ui.gmClose}
+                  </button>
+                </div>
+              </div>
+            )}
             {log.length > 0 && (
               <ul className="pe-log">
                 {log.map((l, i) => {
