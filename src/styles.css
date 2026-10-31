@@ -243,6 +243,21 @@ h1, h3 { margin: 0; }
 .photo-tools { display: flex; justify-content: space-between; margin-top: 4px; }
 .photo-tools button { width: 28px; height: 28px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; }
 .photo-tools button:disabled { opacity: 0.3; }
+/* «Добавить и изменить фото» — отдельный блок первым на вкладке «Фон» */
+.photo-section { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 18px; background: var(--bg); border: 2px solid var(--border); }
+.photo-section.active { border-color: var(--accent); }
+.photo-pick { position: relative; display: block; padding: 0; border-radius: 12px; border: 3px solid transparent; }
+.photo-item.selected .photo-pick { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.photo-check { position: absolute; inset-block-start: 4px; inset-inline-end: 4px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-weight: 900; font-size: 14px; }
+.pe-label { font-weight: 700; font-size: 14px; }
+.pe-command { width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 14px; border: 2px solid var(--border); background: var(--surface); color: var(--text); resize: vertical; min-height: 70px; }
+.pe-command:focus { outline: none; border-color: var(--accent); }
+.pe-hints .chip { font-size: 13px; padding: 6px 11px; }
+.pe-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+.pe-undo:disabled { opacity: 0.4; }
+.pe-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.pe-log li { padding: 8px 10px; border-radius: 10px; background: var(--surface); }
+.pe-log li.err { background: color-mix(in srgb, #f59e0b 15%, var(--surface)); }
 .photo-add { flex: none; width: 92px; height: 92px; border-radius: 12px; border: 2px dashed var(--border); font-size: 32px; color: var(--muted); }
 .big-action:disabled { opacity: 0.7; cursor: progress; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }

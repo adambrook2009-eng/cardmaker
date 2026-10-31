@@ -1,6 +1,7 @@
 import type { AnimId, CameraId, CategoryId, ColorAdjust, FilterId, FrameId, FxId, IntroId, Lang, LookId, SlideTransition, TextAnimId, TextStyleId } from '../types';
 import type { TrackId } from '../data/music';
 import type { PresetId } from '../data/fx';
+import type { MergeMode, PhotoOp } from '../engine/photoEdit';
 
 interface Dict {
   appName: string;
@@ -17,6 +18,8 @@ interface Dict {
   presets: Record<PresetId, { name: string; hint: string }>;
   filters: Record<FilterId, string>;
   adjust: Record<keyof ColorAdjust, string>;
+  photoOps: Record<PhotoOp, string>;
+  mergeModes: Record<MergeMode, string>;
   frames: Record<FrameId, string>;
   anims: Record<AnimId, string>;
   textAnims: Record<TextAnimId, string>;
@@ -50,6 +53,32 @@ interface Dict {
     previewTitle: string;
     edit: string;
     liveBg: string;
+    photoSectionTitle: string;
+    peTapHint: string;
+    peCommandLabel: string;
+    pePlaceholder: string;
+    peDoIt: string;
+    peUndo: string;
+    peDone: string;
+    peMerged: string;
+    peDeleted: string;
+    peNoNumber: string;
+    peBadNumber: string;
+    peNeedTwo: string;
+    peNotUnderstood: string;
+    peExamples: string;
+    hintBw: string;
+    hintRotate: string;
+    hintFlip: string;
+    hintCrop: string;
+    hintBrighter: string;
+    hintWarm: string;
+    hintVivid: string;
+    hintSepia: string;
+    hintBorder: string;
+    hintMerge: string;
+    hintBlend: string;
+    hintDelete: string;
     colorPlay: string;
     filtersTitle: string;
     surprise: string;
@@ -163,6 +192,13 @@ const ru: Dict = {
     duoPink: 'Розовый дуотон', duoBlue: 'Синий дуотон', invert: 'Негатив',
   },
   adjust: { brightness: 'Яркость', contrast: 'Контраст', saturate: 'Насыщенность', hue: 'Оттенок', warmth: 'Температура', fade: 'Выцветание', vignette: 'Виньетка' },
+  photoOps: {
+    rotateR: 'повёрнуто вправо', rotateL: 'повёрнуто влево', rotate180: 'перевёрнуто', flip: 'отражено', crop: 'обрезано квадратом',
+    zoom: 'приближено', bw: 'чёрно-белое', sepia: 'сепия', invert: 'негатив', saturate: 'насыщеннее', desaturate: 'бледнее',
+    brighter: 'ярче', darker: 'темнее', contrast: 'контрастнее', warm: 'теплее', cool: 'холоднее', blur: 'размыто', sharpen: 'резче',
+    vignette: 'виньетка', border: 'рамка', round: 'скруглены углы', delete: 'удалено', duplicate: 'скопировано', first: 'на первом месте',
+  },
+  mergeModes: { collage: 'коллаж', horizontal: 'рядом', vertical: 'друг под другом', blend: 'наложением' },
   frames: { none: 'Без рамки', classic: 'Классика', gold: 'Золото', polaroid: 'Полароид', hearts: 'Сердечки', flowers: 'Цветы', sparkles: 'Блёстки', party: 'Праздник' },
   anims: { none: 'Без анимации', snow: 'Снежинки', petals: 'Лепестки', lights: 'Огоньки', sparkles: 'Мерцание', hearts: 'Сердечки', confetti: 'Конфетти', bokeh: 'Мягкий свет', stars: 'Звёзды', coins: 'Монеты', leaves: 'Листопад', fireflies: 'Светлячки', notes: 'Ноты', ribbons: 'Серпантин', emojiRain: 'Смайлики', rings: 'Неоновые кольца', rain: 'Дождь' },
   textAnims: { none: 'Статичный', pulse: 'Пульс', bounce: 'Прыжки', typewriter: 'Печать', glow: 'Сияние' },
@@ -196,6 +232,33 @@ const ru: Dict = {
     previewTitle: 'Предпросмотр',
     edit: 'Изменить',
     liveBg: 'живой фон: двигается в видео',
+    photoSectionTitle: 'Добавить и изменить фото',
+    peTapHint: 'Нажмите на фото, чтобы отметить его. Номер фото — в левом верхнем углу.',
+    peCommandLabel: 'Что сделать? Напишите номер фото и что изменить — или номера фото, которые объединить',
+    pePlaceholder: 'Например: 1 чёрно-белое; 2 повернуть вправо; объединить 1 2 3',
+    peDoIt: 'Сделать это',
+    peUndo: 'Отменить',
+    peDone: 'Фото {n}: {what}',
+    peMerged: 'Фото {n} объединены ({mode}) — новое фото № {r}',
+    peDeleted: 'Удалено фото {n}',
+    peNoNumber: '«{c}» — укажите номер фото (или отметьте фото нажатием)',
+    peBadNumber: 'Нет фото с номером {n} — у вас всего {count}',
+    peNeedTwo: 'Чтобы объединить, нужно минимум два номера фото, например: объединить 1 2',
+    peNotUnderstood: 'Не понял «{c}»',
+    peExamples:
+      'Можно: повернуть влево/вправо, перевернуть, зеркально, обрезать квадратом, приблизить, чёрно-белое, сепия, негатив, ярче, темнее, контрастнее, насыщеннее, бледнее, теплее, холоднее, размыть, резче, виньетка, рамка, скруглить углы, копировать, на первое место, удалить, объединить (рядом / друг под другом / наложить). Слова «чуть» и «сильно» меняют силу.',
+    hintBw: 'чёрно-белое',
+    hintRotate: 'повернуть вправо',
+    hintFlip: 'отразить зеркально',
+    hintCrop: 'обрезать квадратом',
+    hintBrighter: 'ярче',
+    hintWarm: 'теплее',
+    hintVivid: 'насыщеннее',
+    hintSepia: 'сепия',
+    hintBorder: 'рамка',
+    hintMerge: 'объединить',
+    hintBlend: 'объединить наложением',
+    hintDelete: 'удалить',
     colorPlay: 'Игра с цветом',
     filtersTitle: 'Фильтры',
     surprise: 'Случайно',
@@ -311,6 +374,13 @@ const he: Dict = {
     duoPink: 'דואוטון ורוד', duoBlue: 'דואוטון כחול', invert: 'נגטיב',
   },
   adjust: { brightness: 'בהירות', contrast: 'ניגודיות', saturate: 'רוויה', hue: 'גוון', warmth: 'טמפרטורה', fade: 'דהייה', vignette: 'וינייטה' },
+  photoOps: {
+    rotateR: 'סובבה ימינה', rotateL: 'סובבה שמאלה', rotate180: 'הופכה', flip: 'שיקוף', crop: 'נחתכה לריבוע',
+    zoom: 'הוגדלה', bw: 'שחור לבן', sepia: 'ספיה', invert: 'נגטיב', saturate: 'צבעונית יותר', desaturate: 'דהויה יותר',
+    brighter: 'בהירה יותר', darker: 'כהה יותר', contrast: 'ניגודיות', warm: 'חמה יותר', cool: 'קרה יותר', blur: 'טושטשה', sharpen: 'חדה יותר',
+    vignette: 'וינייטה', border: 'מסגרת', round: 'פינות מעוגלות', delete: 'נמחקה', duplicate: 'שוכפלה', first: 'במקום הראשון',
+  },
+  mergeModes: { collage: 'קולאז׳', horizontal: 'בשורה', vertical: 'זו מעל זו', blend: 'בשכבות' },
   frames: { none: 'ללא', classic: 'קלאסי', gold: 'זהב', polaroid: 'פולרואיד', hearts: 'לבבות', flowers: 'פרחים', sparkles: 'נצנצים', party: 'חגיגה' },
   anims: { none: 'ללא', snow: 'פתיתי שלג', petals: 'עלי כותרת', lights: 'אורות', sparkles: 'נצנוץ', hearts: 'לבבות', confetti: 'קונפטי', bokeh: 'אור רך', stars: 'כוכבים', coins: 'מטבעות', leaves: 'שלכת', fireflies: 'גחליליות', notes: 'תווים', ribbons: 'סרפנטין', emojiRain: 'סמיילים', rings: 'טבעות ניאון', rain: 'גשם' },
   textAnims: { none: 'סטטי', pulse: 'פעימה', bounce: 'קפיצה', typewriter: 'הקלדה', glow: 'זוהר' },
@@ -344,6 +414,33 @@ const he: Dict = {
     previewTitle: 'תצוגה מקדימה',
     edit: 'עריכה',
     liveBg: 'רקע חי: זז בסרטון',
+    photoSectionTitle: 'הוספה ועריכה של תמונות',
+    peTapHint: 'לחצו על תמונה כדי לסמן אותה. מספר התמונה — בפינה.',
+    peCommandLabel: 'מה לעשות? כתבו מספר תמונה ומה לשנות — או מספרי תמונות למיזוג',
+    pePlaceholder: 'לדוגמה: 1 שחור לבן; 2 סובב ימינה; מזג 1 2 3',
+    peDoIt: 'לבצע',
+    peUndo: 'ביטול',
+    peDone: 'תמונה {n}: {what}',
+    peMerged: 'תמונות {n} מוזגו ({mode}) — תמונה חדשה מס׳ {r}',
+    peDeleted: 'נמחקה תמונה {n}',
+    peNoNumber: '«{c}» — ציינו מספר תמונה (או סמנו תמונה בלחיצה)',
+    peBadNumber: 'אין תמונה מספר {n} — יש לכם רק {count}',
+    peNeedTwo: 'כדי למזג צריך לפחות שני מספרים, לדוגמה: מזג 1 2',
+    peNotUnderstood: 'לא הבנתי «{c}»',
+    peExamples:
+      'אפשר: סובב ימינה/שמאלה, הפוך, מראה, חתוך ריבוע, הגדל, שחור לבן, ספיה, נגטיב, בהיר יותר, כהה יותר, ניגודיות, צבעוני, דהוי, חם יותר, קר יותר, טשטש, חד, וינייטה, מסגרת, עגל פינות, שכפל, ראשונה, מחק, מזג (בשורה / אנכי / בשכבות). «קצת» ו«מאוד» משנים את העוצמה.',
+    hintBw: 'שחור לבן',
+    hintRotate: 'סובב ימינה',
+    hintFlip: 'מראה',
+    hintCrop: 'חתוך ריבוע',
+    hintBrighter: 'בהיר יותר',
+    hintWarm: 'חם יותר',
+    hintVivid: 'צבעוני',
+    hintSepia: 'ספיה',
+    hintBorder: 'מסגרת',
+    hintMerge: 'מזג',
+    hintBlend: 'מזג בשכבות',
+    hintDelete: 'מחק',
     colorPlay: 'משחק בצבעים',
     filtersTitle: 'פילטרים',
     surprise: 'אקראי',
@@ -458,6 +555,13 @@ const en: Dict = {
     duoPink: 'Pink duotone', duoBlue: 'Blue duotone', invert: 'Negative',
   },
   adjust: { brightness: 'Brightness', contrast: 'Contrast', saturate: 'Saturation', hue: 'Hue', warmth: 'Temperature', fade: 'Fade', vignette: 'Vignette' },
+  photoOps: {
+    rotateR: 'rotated right', rotateL: 'rotated left', rotate180: 'turned upside down', flip: 'mirrored', crop: 'cropped square',
+    zoom: 'zoomed in', bw: 'black and white', sepia: 'sepia', invert: 'negative', saturate: 'more vivid', desaturate: 'muted',
+    brighter: 'brighter', darker: 'darker', contrast: 'more contrast', warm: 'warmer', cool: 'cooler', blur: 'blurred', sharpen: 'sharper',
+    vignette: 'vignette', border: 'border', round: 'rounded corners', delete: 'deleted', duplicate: 'copied', first: 'moved first',
+  },
+  mergeModes: { collage: 'collage', horizontal: 'side by side', vertical: 'stacked', blend: 'overlay' },
   frames: { none: 'No frame', classic: 'Classic', gold: 'Gold', polaroid: 'Polaroid', hearts: 'Hearts', flowers: 'Flowers', sparkles: 'Sparkles', party: 'Party' },
   anims: { none: 'None', snow: 'Snowflakes', petals: 'Petals', lights: 'Fairy lights', sparkles: 'Twinkle', hearts: 'Hearts', confetti: 'Confetti', bokeh: 'Soft light', stars: 'Stars', coins: 'Coins', leaves: 'Falling leaves', fireflies: 'Fireflies', notes: 'Music notes', ribbons: 'Streamers', emojiRain: 'Emoji rain', rings: 'Neon rings', rain: 'Rain' },
   textAnims: { none: 'Static', pulse: 'Pulse', bounce: 'Bounce', typewriter: 'Typewriter', glow: 'Glow' },
@@ -491,6 +595,33 @@ const en: Dict = {
     previewTitle: 'Preview',
     edit: 'Edit',
     liveBg: 'live background: moves in the video',
+    photoSectionTitle: 'Add and edit photos',
+    peTapHint: 'Tap a photo to select it. The photo number is in the corner.',
+    peCommandLabel: 'What to do? Write a photo number and what to change — or photo numbers to merge',
+    pePlaceholder: 'For example: 1 black and white; 2 rotate right; merge 1 2 3',
+    peDoIt: 'Do it',
+    peUndo: 'Undo',
+    peDone: 'Photo {n}: {what}',
+    peMerged: 'Photos {n} merged ({mode}) — new photo #{r}',
+    peDeleted: 'Deleted photo {n}',
+    peNoNumber: '“{c}” — add a photo number (or tap a photo to select it)',
+    peBadNumber: 'There is no photo {n} — you have {count}',
+    peNeedTwo: 'To merge, give at least two photo numbers, e.g.: merge 1 2',
+    peNotUnderstood: 'Didn’t understand “{c}”',
+    peExamples:
+      'You can: rotate right/left, upside down, mirror, crop square, zoom, black and white, sepia, negative, brighter, darker, contrast, vivid, muted, warmer, cooler, blur, sharpen, vignette, border, round corners, copy, move first, delete, merge (side by side / stack / overlay). “a bit” and “very” change the strength.',
+    hintBw: 'black and white',
+    hintRotate: 'rotate right',
+    hintFlip: 'mirror',
+    hintCrop: 'crop square',
+    hintBrighter: 'brighter',
+    hintWarm: 'warmer',
+    hintVivid: 'more vivid',
+    hintSepia: 'sepia',
+    hintBorder: 'border',
+    hintMerge: 'merge',
+    hintBlend: 'merge as overlay',
+    hintDelete: 'delete',
     colorPlay: 'Play with colors',
     filtersTitle: 'Filters',
     surprise: 'Surprise me',
