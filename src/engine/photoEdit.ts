@@ -36,7 +36,71 @@ export interface PhotoCommand {
   nums: number[]; // номера фото, с 1
   ops: PhotoOp[];
   merge?: MergeMode;
+  /** Замена фона: человек с фото person на фоне фото bg. */
+  swap?: { person: number; bg: number };
   amount: number; // «чуть» 0.5 … «сильно» 1.8
+}
+
+/* ---------- Номера словами: «второй фотографии» → 2 ---------- */
+
+// в иврите порядковое число часто с артиклем «ה»: «התמונה השנייה»
+const ORDINALS: [RegExp, number][] = [
+  [/перв|first|ה?ראשונ/, 1],
+  [/втор|second|ה?שני/, 2],
+  [/трет|third|ה?שליש/, 3],
+  [/четв[её]рт|fourth|ה?רביע/, 4],
+  [/пят|fifth|ה?חמיש/, 5],
+  [/шест|sixth|ה?שיש/, 6],
+  [/седьм|seventh|ה?שביע/, 7],
+  [/восьм|eighth|ה?שמינ/, 8],
+  [/девят|ninth|ה?תשיע/, 9],
+  [/десят|tenth|ה?עשיר/, 10],
+];
+const CARDINALS: [RegExp, number][] = [
+  [/один|одна|one|אחת/, 1],
+  [/два|две|two|שתיים|שתים/, 2],
+  [/три|three|שלוש/, 3],
+  [/четыре|four|ארבע/, 4],
+  [/пять|five|חמש/, 5],
+];
+const PHOTO_WORD = '(фото\\S*|фотограф\\S*|снимк\\S*|снимок|картинк\\S*|photo\\S*|picture\\S*|image\\S*|תמונה|תמונות|התמונה)';
+
+/** «вторая фотография», «фото два», «photo two», «התמונה השנייה» → цифры, чтобы дальше работать с номерами. */
+function wordsToNumbers(t: string): string {
+  let s = t;
+  for (const [re, n] of ORDINALS) {
+    s = s.replace(new RegExp(`(${re.source})\\S*\\s+${PHOTO_WORD}`, 'g'), ` ${n} `); // «второй фотографии»
+    s = s.replace(new RegExp(`${PHOTO_WORD}\\s+(${re.source})\\S*`, 'g'), ` ${n} `); // «התמונה השנייה», «фото второе»
+  }
+  for (const [re, n] of CARDINALS) s = s.replace(new RegExp(`${PHOTO_WORD}\\s+(номер\\s+|number\\s+|מספר\\s+)?(${re.source})(?=$|[\\s,.;])`, 'g'), ` ${n} `);
+  return s.replace(/(фото|photo|תמונה)\s+(номер|number|מספר)\s+(\d+)/g, ' $3 ');
+}
+
+/* ---------- Замена фона ---------- */
+
+const SWAP_WORDS = /(фон|background|backdrop|רקע)/;
+const SWAP_VERBS = /(вместо|замен|постав|перенес|перемест|на фоне|на фон|instead|replace|swap|put|move|on the background|on background|onto|במקום|החלף|שים|על רקע|לרקע)/;
+
+/**
+ * Кто человек, а кто фон:
+ *  • «фон 2 вместо фона 1» — номер после «вместо» — фото с человеком;
+ *  • «1 на фоне 2» / «1 on background 2» / «1 על רקע 2» — номер после «на фоне» — фон;
+ *  • иначе («замени фон 1 на 2», «человек с 1 на 2») — первый номер — человек, второй — фон.
+ */
+function parseSwap(t: string, nums: number[]): PhotoCommand['swap'] {
+  if (nums.length !== 2 || !SWAP_WORDS.test(t) || !SWAP_VERBS.test(t)) return undefined;
+  const [a, b] = nums;
+  const after = (word: RegExp) => {
+    const m = word.exec(t);
+    if (!m) return null;
+    const n = /\d+/.exec(t.slice(m.index + m[0].length));
+    return n ? +n[0] : null;
+  };
+  const target = after(/(вместо|instead of|instead|במקום)/);
+  if (target === a || target === b) return { person: target, bg: target === a ? b : a };
+  const bgNum = after(/(на фоне|на фон|on the background of|on background|on the background|onto|על רקע|לרקע)/);
+  if (bgNum === a || bgNum === b) return { person: bgNum === a ? b : a, bg: bgNum };
+  return { person: a, bg: b };
 }
 
 /* ---------- Понимание команд (ru / he / en) ---------- */
@@ -85,7 +149,7 @@ export function parseCommands(raw: string, count: number, selected: number[] = [
     .map((s) => s.trim())
     .filter(Boolean)
     .map((text) => {
-      const t = text.toLowerCase().replace(/ё/g, 'е');
+      const t = wordsToNumbers(text.toLowerCase().replace(/ё/g, 'е'));
       const nums: number[] = [];
       for (const m of t.matchAll(/(\d+)\s*[-–—]\s*(\d+)|\d+/g)) {
         if (m[1] && m[2]) for (let k = +m[1]; k <= +m[2]; k++) nums.push(k);
@@ -109,7 +173,11 @@ export function parseCommands(raw: string, count: number, selected: number[] = [
       found.sort((a, b) => a.at - b.at);
       const amount = /(чуть|немного|слегка|a bit|slightly|little|קצת)/.test(t) ? 0.5 : /(сильно|очень|намного|much|very|strong|מאוד|הרבה)/.test(t) ? 1.8 : 1;
       const uniq = [...new Set(nums)];
-      return { text, nums: uniq.length ? uniq : [...selected], ops: found.map((f) => f.op), merge, amount };
+      const finalNums = uniq.length ? uniq : [...selected];
+      const swap = merge ? undefined : parseSwap(t, finalNums);
+      // при замене фона слова вроде «поставь»/«перенеси» не должны превращаться в другие операции
+      const ops = swap ? [] : found.map((f) => f.op);
+      return { text, nums: finalNums, ops, merge, swap, amount };
     });
 }
 
@@ -309,6 +377,9 @@ function layout(n: number, mode: MergeMode): [number, number, number, number][] 
 
 export type LogEntry =
   | { kind: 'done'; nums: number[]; ops: PhotoOp[] }
+  | { kind: 'swapped'; person: number; bg: number; result: number }
+  | { kind: 'noPerson'; person: number }
+  | { kind: 'modelError' }
   | { kind: 'merged'; nums: number[]; mode: MergeMode; result: number }
   | { kind: 'deleted'; nums: number[] }
   | { kind: 'noNumber'; text: string }
@@ -320,10 +391,31 @@ export type LogEntry =
  * Выполняет команды по очереди. Номера в каждой команде — по текущему списку
  * (после удаления фото номера сдвигаются, как и видит пользователь).
  */
-export function runCommands(start: HTMLCanvasElement[], cmds: PhotoCommand[]): { imgs: HTMLCanvasElement[]; log: LogEntry[] } {
+export async function runCommands(start: HTMLCanvasElement[], cmds: PhotoCommand[]): Promise<{ imgs: HTMLCanvasElement[]; log: LogEntry[] }> {
   let imgs = [...start];
   const log: LogEntry[] = [];
   for (const c of cmds) {
+    if (c.swap) {
+      const { person, bg } = c.swap;
+      const bad = [person, bg].filter((n) => n < 1 || n > imgs.length);
+      if (bad.length) {
+        log.push({ kind: 'badNumber', nums: bad, count: imgs.length });
+        continue;
+      }
+      try {
+        // нейросеть подгружается только здесь — при первой замене фона
+        const { replaceBackground, NoPersonError } = await import('./segment');
+        try {
+          imgs.push(await replaceBackground(imgs[person - 1], imgs[bg - 1]));
+          log.push({ kind: 'swapped', person, bg, result: imgs.length });
+        } catch (e) {
+          log.push(e instanceof NoPersonError ? { kind: 'noPerson', person } : { kind: 'modelError' });
+        }
+      } catch {
+        log.push({ kind: 'modelError' });
+      }
+      continue;
+    }
     if (!c.ops.length && !c.merge) {
       log.push({ kind: 'notUnderstood', text: c.text });
       continue;

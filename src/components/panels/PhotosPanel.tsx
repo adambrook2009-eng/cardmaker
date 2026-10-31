@@ -48,6 +48,7 @@ export function PhotosPanel({ api }: { api: CardApi }) {
   const [selected, setSelected] = useState<number[]>([]); // номера отмеченных фото (с 1)
   const [command, setCommand] = useState('');
   const [log, setLog] = useState<LogEntry[]>([]);
+  const [busy, setBusy] = useState<'edit' | 'swap' | null>(null);
   const history = useRef<HTMLCanvasElement[][]>([]); // для «Отменить»
   const bg = api.card.background;
   // свои фото: текущие или сохранённые (если сейчас выбран готовый фон)
@@ -83,20 +84,31 @@ export function PhotosPanel({ api }: { api: CardApi }) {
   /** Кнопка-подсказка дописывает команду: «номера отмеченных фото + действие». */
   const addHint = (word: string) => {
     const nums = selected.join(' ');
-    const clause = `${nums ? nums + ' ' : ''}${word}`;
+    // «человек на другой фон»: нужны два номера — с человеком и с фоном
+    const clause =
+      word === t.ui.hintSwap
+        ? t.ui.swapTemplate.replace('{a}', String(selected[0] ?? 1)).replace('{b}', String(selected[1] ?? 2))
+        : `${nums ? nums + ' ' : ''}${word}`;
     setCommand((c) => (c.trim() ? `${c.trim().replace(/;$/, '')}; ${clause}` : clause));
   };
 
-  /** «Сделать это»: разбираем текст и выполняем по очереди. */
-  const doIt = () => {
-    if (!photos || !command.trim()) return;
+  const OK_KINDS: LogEntry['kind'][] = ['done', 'merged', 'deleted', 'swapped'];
+
+  /** «Сделать это»: разбираем текст и выполняем по очереди (замена фона — пару секунд). */
+  const doIt = async () => {
+    if (!photos || !command.trim() || busy) return;
     const cmds = parseCommands(command, count, selected);
-    const res = runCommands(photos.imgs, cmds);
-    if (res.imgs !== photos.imgs && res.log.some((l) => l.kind === 'done' || l.kind === 'merged' || l.kind === 'deleted')) setImgs(res.imgs);
-    setLog(res.log);
-    if (res.log.every((l) => l.kind === 'done' || l.kind === 'merged' || l.kind === 'deleted')) {
-      setCommand('');
-      setSelected([]);
+    setBusy(cmds.some((c) => c.swap) ? 'swap' : 'edit');
+    try {
+      const res = await runCommands(photos.imgs, cmds);
+      if (res.log.some((l) => OK_KINDS.includes(l.kind))) setImgs(res.imgs);
+      setLog(res.log);
+      if (res.log.every((l) => OK_KINDS.includes(l.kind))) {
+        setCommand('');
+        setSelected([]);
+      }
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -132,12 +144,19 @@ export function PhotosPanel({ api }: { api: CardApi }) {
         return [false, t.ui.peBadNumber.replace('{n}', n(l.nums)).replace('{count}', String(l.count))];
       case 'needTwo':
         return [false, t.ui.peNeedTwo];
+      case 'swapped':
+        return [true, t.ui.peSwapped.replace('{p}', String(l.person)).replace('{b}', String(l.bg)).replace('{r}', String(l.result))];
+      case 'noPerson':
+        return [false, t.ui.peNoPerson.replace('{p}', String(l.person))];
+      case 'modelError':
+        return [false, t.ui.peModelError];
       default:
         return [false, t.ui.peNotUnderstood.replace('{c}', l.text)];
     }
   };
 
   const HINTS: [string, string][] = [
+    ['👤', t.ui.hintSwap],
     ['⬛', t.ui.hintBw],
     ['🔄', t.ui.hintRotate],
     ['🪞', t.ui.hintFlip],
@@ -224,8 +243,8 @@ export function PhotosPanel({ api }: { api: CardApi }) {
               ))}
             </div>
             <div className="pe-actions">
-              <button className="big-action" onClick={doIt} disabled={!command.trim()}>
-                ✨ {t.ui.peDoIt}
+              <button className="big-action" onClick={doIt} disabled={!command.trim() || !!busy}>
+                {busy === 'swap' ? `⏳ ${t.ui.peSwapping}` : busy ? '⏳' : `✨ ${t.ui.peDoIt}`}
               </button>
               <button className="big-action secondary pe-undo" onClick={undo} disabled={!history.current.length}>
                 ↩ {t.ui.peUndo}

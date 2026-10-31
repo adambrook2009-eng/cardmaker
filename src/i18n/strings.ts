@@ -68,6 +68,12 @@ interface Dict {
     peNeedTwo: string;
     peNotUnderstood: string;
     peExamples: string;
+    hintSwap: string;
+    swapTemplate: string;
+    peSwapped: string;
+    peNoPerson: string;
+    peModelError: string;
+    peSwapping: string;
     hintBw: string;
     hintRotate: string;
     hintFlip: string;
@@ -237,7 +243,7 @@ const ru: Dict = {
     photoSectionTitle: 'Добавить и изменить фото',
     peTapHint: 'Нажмите на фото, чтобы отметить его. Номер фото — в левом верхнем углу.',
     peCommandLabel: 'Что сделать? Напишите номер фото и что изменить — или номера фото, которые объединить',
-    pePlaceholder: 'Например: 1 чёрно-белое; 2 повернуть вправо; объединить 1 2 3',
+    pePlaceholder: 'Например: 1 чёрно-белое; объединить 1 2 3; фон 2 вместо фона 1',
     peDoIt: 'Сделать это',
     peUndo: 'Отменить',
     peDone: 'Фото {n}: {what}',
@@ -249,6 +255,12 @@ const ru: Dict = {
     peNotUnderstood: 'Не понял «{c}»',
     peExamples:
       'Можно: повернуть влево/вправо, перевернуть, зеркально, обрезать квадратом, приблизить, чёрно-белое, сепия, негатив, ярче, темнее, контрастнее, насыщеннее, бледнее, теплее, холоднее, размыть, резче, виньетка, рамка, скруглить углы, копировать, на первое место, удалить, объединить (рядом / друг под другом / наложить). Слова «чуть» и «сильно» меняют силу.',
+    hintSwap: 'человек на другой фон',
+    swapTemplate: '{a} на фоне {b}',
+    peSwapped: 'Человек с фото {p} на фоне фото {b} — новое фото № {r}',
+    peNoPerson: 'На фото {p} не нашлось человека — замена фона работает для фото людей',
+    peModelError: 'Не удалось загрузить распознавание людей. Проверьте интернет и попробуйте ещё раз',
+    peSwapping: 'Меняем фон… (первый раз — до минуты)',
     hintBw: 'чёрно-белое',
     hintRotate: 'повернуть вправо',
     hintFlip: 'отразить зеркально',
@@ -432,6 +444,12 @@ const he: Dict = {
     peNotUnderstood: 'לא הבנתי «{c}»',
     peExamples:
       'אפשר: סובב ימינה/שמאלה, הפוך, מראה, חתוך ריבוע, הגדל, שחור לבן, ספיה, נגטיב, בהיר יותר, כהה יותר, ניגודיות, צבעוני, דהוי, חם יותר, קר יותר, טשטש, חד, וינייטה, מסגרת, עגל פינות, שכפל, ראשונה, מחק, מזג (בשורה / אנכי / בשכבות). «קצת» ו«מאוד» משנים את העוצמה.',
+    hintSwap: 'אדם על רקע אחר',
+    swapTemplate: 'תמונה {a} על רקע {b}',
+    peSwapped: 'האדם מתמונה {p} על הרקע של תמונה {b} — תמונה חדשה מס׳ {r}',
+    peNoPerson: 'לא נמצא אדם בתמונה {p} — החלפת רקע עובדת בתמונות של אנשים',
+    peModelError: 'לא ניתן לטעון את זיהוי האנשים. בדקו את החיבור לאינטרנט ונסו שוב',
+    peSwapping: 'מחליפים רקע… (בפעם הראשונה — עד דקה)',
     hintBw: 'שחור לבן',
     hintRotate: 'סובב ימינה',
     hintFlip: 'מראה',
@@ -614,6 +632,12 @@ const en: Dict = {
     peNotUnderstood: 'Didn’t understand “{c}”',
     peExamples:
       'You can: rotate right/left, upside down, mirror, crop square, zoom, black and white, sepia, negative, brighter, darker, contrast, vivid, muted, warmer, cooler, blur, sharpen, vignette, border, round corners, copy, move first, delete, merge (side by side / stack / overlay). “a bit” and “very” change the strength.',
+    hintSwap: 'person on another background',
+    swapTemplate: '{a} on the background of {b}',
+    peSwapped: 'Person from photo {p} on the background of photo {b} — new photo #{r}',
+    peNoPerson: 'No person found in photo {p} — background swap works for photos of people',
+    peModelError: 'Could not load person detection. Check your internet connection and try again',
+    peSwapping: 'Swapping background… (first time — up to a minute)',
     hintBw: 'black and white',
     hintRotate: 'rotate right',
     hintFlip: 'mirror',
